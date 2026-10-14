@@ -1,0 +1,24 @@
+kind = "mobile"
+previewPath = "/"
+title = "Pourfect: Water Sort Puzzle"
+description = "Pourfect is an Android-only, fully offline liquid-sorting puzzle game. Players tap glass tubes to pour colored liquid layers until every color sits in its own tube, across a 300-level hand-verified campaign plus endless generated levels, daily challenges, rewards, quests, achievements and a large cosmetic store. Monetized by ads only (mock ads in preview)."
+version = "1.0.0"
+id = "artifacts/pourfect"
+router = "expo-domain"
+
+[[services]]
+name = "expo"
+ensurePreviewReachable = "/status"
+paths = [ "/" ]
+localPort = 18219
+
+[services.development]
+run = "pnpm --filter @workspace/pourfect run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/pourfect", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/pourfect", "run", "serve" ]
+
+[services.env]
+PORT = "18219"
+BASE_PATH = "/"

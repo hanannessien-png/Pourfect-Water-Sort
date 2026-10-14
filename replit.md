@@ -1,45 +1,45 @@
-# [Project name]
+# Pourfect: Water Sort Puzzle
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Android-only, fully offline water-sort puzzle game (Expo + React Native + Skia), built from the owner's master spec PDF in `attached_assets/` with overrides in `BUILD_BRIEF.md`.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Workflow `artifacts/pourfect: expo` runs Metro; test on Android with Expo Go (QR code).
+- From `artifacts/pourfect`: `pnpm run typecheck`, `pnpm run lint`, `pnpm test`, `pnpm run levels:validate`, `pnpm run levels:generate`.
+- The API server and mockup sandbox artifacts are scaffold leftovers; the game does not use them.
 
 ## Stack
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Expo SDK 57, React Native 0.86, strict TypeScript, Expo Router
+- Rendering: @shopify/react-native-skia + Reanimated 4 / worklets
+- State: Zustand + AsyncStorage (with backup copy)
+- Tests: Jest (Babel transform, no jest-expo); ESLint (eslint-config-expo)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/pourfect/PROGRESS.md` — phase status, checks, next steps
+- `artifacts/pourfect/README.md` — commands, where to change package name / ad IDs, decisions log
+- `artifacts/pourfect/src/game` — pure engine; `src/render` — Skia board; `src/state` — save/session
+- `artifacts/pourfect/src/data/levels.fixed.json` — 300 generated, solver-verified levels
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Static `app.json` only (no `app.config.*`); no EAS commands run from Replit.
+- Fixed levels are generated offline by script and re-verified; never hand-edit the JSON.
+- Web preview is a dev aid only: `src/boot.web.ts` loads CanvasKit from a CDN; Android stays offline.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Campaign of 300 fixed levels (endless after), undo / hint / add-tube tokens, stars, resume, colour-blind symbols, Reduce motion, Low graphics.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Owner writes in Egyptian Arabic; reply in Egyptian Arabic. Game UI is English only.
+- Stop for owner review after Phase 3, Phase 5 and Phase 6; Phases 7–8 run straight through.
+- No ad IDs anywhere (not even Google test IDs) until the owner supplies them at the end.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- TypeScript 6 no longer auto-includes `@types/*`; tsconfig lists `"types": ["jest", "node"]`.
+- `react-native-worklets` needs `@babel/generator` via `packageExtensions` in `pnpm-workspace.yaml`, or Metro fails.
+- Restart the Expo workflow only after dependency or entry/config changes (HMR covers code).
