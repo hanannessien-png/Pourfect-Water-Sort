@@ -1,6 +1,7 @@
 import React from 'react';
-import { Group, Path, Rect, RoundedRect } from '@shopify/react-native-skia';
+import { Group, LinearGradient, Path, Rect, RoundedRect, vec } from '@shopify/react-native-skia';
 import { useDerivedValue, type SharedValue } from 'react-native-reanimated';
+import type { TubeSkin } from '@/src/config/cosmetics';
 import { codeColor, codeHidden } from '@/src/game/codec';
 import { MAX_CAPACITY } from '@/src/game/types';
 import type { LiquidShades } from './palettes';
@@ -21,6 +22,7 @@ interface Props {
   /** Source tube contents before the pour. */
   layers: string;
   shades: readonly LiquidShades[];
+  skin: TubeSkin;
 }
 
 const SLOTS = Array.from({ length: MAX_CAPACITY }, (_, i) => i);
@@ -47,7 +49,7 @@ function PourBand(props: { plan: SharedValue<PourPlan | null>; progress: SharedV
   return <Rect x={-props.far} y={y} width={props.far * 2} height={h} color={props.color} />;
 }
 
-export function PouringTube({ plan, progress, shape, layers, shades }: Props) {
+export function PouringTube({ plan, progress, shape, layers, shades, skin }: Props) {
   const { w, g, h } = shape;
   const far = h * 3;
   const angle = useDerivedValue(() => {
@@ -73,7 +75,7 @@ export function PouringTube({ plan, progress, shape, layers, shades }: Props) {
   return (
     <Group transform={outer}>
       <Group transform={[{ translateX: -(w - g) }]}>
-        <Path path={shape.outer} color="rgba(255,255,255,0.08)" />
+        <Path path={shape.outer} color={skin.glass} />
         <Group clip={shape.inner}>
           <Group transform={counter}>
             {SLOTS.map((j) => {
@@ -85,9 +87,12 @@ export function PouringTube({ plan, progress, shape, layers, shades }: Props) {
             {topShade && <Rect x={-far} y={surface} width={far * 2} height={Math.max(1.5, w * 0.05)} color={topShade.light} />}
           </Group>
         </Group>
-        <Path path={shape.highlight} color="rgba(255,255,255,0.26)" />
-        <Path path={shape.outline} style="stroke" strokeWidth={Math.max(1.2, w * 0.035)} color="rgba(255,255,255,0.7)" />
-        <RoundedRect x={-w * 0.07} y={-w * 0.05} width={w * 1.14} height={w * 0.13} r={w * 0.06} color="rgba(255,255,255,0.42)" />
+        <Path path={shape.highlight} color={`rgba(255,255,255,${skin.gloss})`} />
+        <Path path={shape.outline} style="stroke" strokeWidth={Math.max(1.4, w * skin.edgeW) + 1.5} color="rgba(0,0,0,0.35)" />
+        <Path path={shape.outline} style="stroke" strokeWidth={Math.max(1.4, w * skin.edgeW)} color={skin.edge} />
+        <RoundedRect x={-w * 0.09} y={-w * 0.07} width={w * 1.18} height={w * 0.17} r={w * 0.085} color={skin.rim[1]}>
+          <LinearGradient start={vec(0, -w * 0.07)} end={vec(0, w * 0.1)} colors={[skin.rim[0], skin.rim[1], skin.rim[2]]} />
+        </RoundedRect>
       </Group>
     </Group>
   );

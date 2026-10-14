@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BRAND } from '@/src/config/brand';
 import { en } from '@/src/i18n/en';
 import { Backdrop } from '@/src/render/Backdrop';
 import { haptics } from '@/src/services/haptics';
-import { usePrefs } from '@/src/state/usePrefs';
 import type { SaveData } from '@/src/state/saveData';
 import { useSaveStore } from '@/src/state/useSaveStore';
-import { Button, IconButton } from '@/src/ui/Button';
-import { Toast } from '@/src/ui/bits';
+import { Button } from '@/src/ui/Button';
+import { Panel, Toast } from '@/src/ui/bits';
+import { ScreenHeader } from '@/src/ui/ScreenHeader';
 import { Sheet } from '@/src/ui/Sheet';
 import { colors, fonts, radius, space } from '@/src/ui/theme';
 
@@ -65,7 +64,6 @@ function Segmented<T extends string>({
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const prefs = usePrefs();
   const settings = useSaveStore((s) => s.save.settings);
   const update = useSaveStore((s) => s.update);
   const resetAll = useSaveStore((s) => s.resetAll);
@@ -77,23 +75,17 @@ export default function SettingsScreen() {
     update((s) => ({ ...s, settings: { ...s.settings, [key]: value } }), 'now');
 
   const switchProps = {
-    trackColor: { false: 'rgba(255,255,255,0.18)', true: colors.teal },
-    thumbColor: '#FFFFFF',
+    trackColor: { false: 'rgba(255,255,255,0.18)', true: colors.emeraldDeep },
+    thumbColor: colors.goldHi,
   };
 
   return (
     <View style={[styles.root, { paddingTop: insets.top + space(1) }]}>
-      <Backdrop lowGfx={prefs.lowGfx} />
-      <View style={styles.header}>
-        <IconButton icon="chevron-back" label={en.common.back} onPress={() => router.back()} testID="settings-back" />
-        <Text style={styles.title} accessibilityRole="header">
-          {en.settings.title}
-        </Text>
-        <View style={{ width: 48 }} />
-      </View>
+      <Backdrop />
+      <ScreenHeader title={en.settings.title} testID="settings-back" />
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + space(4) }]}>
-        <View style={styles.card}>
+        <Panel>
           <Row title={en.settings.haptics}>
             <Switch
               value={settings.haptics}
@@ -113,9 +105,9 @@ export default function SettingsScreen() {
               {...switchProps}
             />
           </Row>
-        </View>
+        </Panel>
 
-        <View style={styles.card}>
+        <Panel>
           <Text style={styles.rowTitle}>{en.settings.reduceMotion}</Text>
           <Text style={[styles.rowHint, { marginBottom: space(1.5) }]}>{en.settings.reduceMotionHint}</Text>
           <Segmented
@@ -138,10 +130,10 @@ export default function SettingsScreen() {
               { value: 'low', label: en.settings.graphicsLow },
             ]}
           />
-        </View>
+        </Panel>
 
-        <View style={styles.card}>
-          <Button label={en.settings.howToPlay} icon="help-circle" variant="secondary" onPress={() => setHowOpen(true)} />
+        <Panel>
+          <Button label={en.settings.howToPlay} icon="help-circle" variant="plum" onPress={() => setHowOpen(true)} />
           <Button
             label={en.settings.resetProgress}
             icon="trash"
@@ -150,7 +142,7 @@ export default function SettingsScreen() {
             style={{ marginTop: space(1) }}
             testID="settings-reset"
           />
-        </View>
+        </Panel>
 
         <Text style={styles.version}>
           {BRAND.shortName} · {en.settings.version(BRAND.version)}
@@ -167,20 +159,20 @@ export default function SettingsScreen() {
       </Sheet>
 
       <Sheet visible={resetStep === 1} title={en.settings.resetTitle} subtitle={en.settings.resetBody} onDismiss={() => setResetStep(0)}>
-        <Button label={en.settings.resetProgress} variant="danger" onPress={() => setResetStep(2)} />
-        <Button label={en.common.cancel} variant="secondary" onPress={() => setResetStep(0)} />
+        <Button label={en.settings.resetProgress} variant="ruby" onPress={() => setResetStep(2)} />
+        <Button label={en.common.cancel} variant="plum" onPress={() => setResetStep(0)} />
       </Sheet>
       <Sheet visible={resetStep === 2} title={en.settings.resetFinalTitle} subtitle={en.settings.resetFinalBody} onDismiss={() => setResetStep(0)}>
         <Button
           label={en.common.confirm}
-          variant="danger"
+          variant="ruby"
           testID="settings-reset-confirm"
           onPress={() => {
             setResetStep(0);
             void resetAll().then(() => setToast((t) => ({ message: en.settings.resetDone, id: (t?.id ?? 0) + 1 })));
           }}
         />
-        <Button label={en.common.cancel} variant="secondary" onPress={() => setResetStep(0)} />
+        <Button label={en.common.cancel} variant="plum" onPress={() => setResetStep(0)} />
       </Sheet>
     </View>
   );
@@ -188,31 +180,24 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space(2) },
-  title: { fontFamily: fonts.bold, fontSize: 28, color: colors.text },
   content: { padding: space(2), gap: space(2) },
-  card: {
-    backgroundColor: colors.card,
-    borderColor: colors.cardBorder,
-    borderWidth: 1,
-    borderRadius: radius.lg,
-    padding: space(2),
-  },
   row: { flexDirection: 'row', alignItems: 'center', gap: space(2), minHeight: 48 },
   rowText: { flex: 1 },
-  rowTitle: { fontFamily: fonts.semibold, fontSize: 17, color: colors.text },
+  rowTitle: { fontFamily: fonts.display, fontSize: 19, color: colors.text, letterSpacing: 0.3 },
   rowHint: { fontFamily: fonts.regular, fontSize: 13, color: colors.textMuted, marginTop: 2 },
   divider: { height: 1, backgroundColor: colors.cardBorder, marginVertical: space(1) },
   segment: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(0,0,0,0.25)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
     borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: 'rgba(247,201,72,0.35)',
     padding: 4,
   },
   segItem: { flex: 1, minHeight: 40, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill },
-  segItemOn: { backgroundColor: colors.coral },
+  segItemOn: { backgroundColor: colors.gold, borderWidth: 1.5, borderColor: colors.goldHi },
   segText: { fontFamily: fonts.semibold, fontSize: 15, color: colors.textMuted },
-  segTextOn: { color: '#FFFFFF' },
+  segTextOn: { color: colors.textOnGold, fontFamily: fonts.display, fontSize: 16 },
   version: { fontFamily: fonts.medium, fontSize: 13, color: colors.textFaint, textAlign: 'center' },
   toastSlot: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
 });

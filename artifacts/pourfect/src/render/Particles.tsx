@@ -1,5 +1,5 @@
-import React, { forwardRef, useImperativeHandle, useMemo, useState } from 'react';
-import { Atlas, Group, Path, RoundedRect, Skia, useRSXformBuffer, useTexture, type SkColor, type SkRect } from '@shopify/react-native-skia';
+import React, { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { Atlas, Skia, useRSXformBuffer, type SkColor, type SkImage, type SkRect } from '@shopify/react-native-skia';
 import { Easing, useSharedValue, withTiming } from 'react-native-reanimated';
 
 /**
@@ -44,21 +44,36 @@ function starPath() {
   return b.close().build();
 }
 
-export const Particles = forwardRef<ParticlesHandle, { enabled: boolean }>(function Particles({ enabled }, ref) {
+/**
+ * The sprite sheet (star + confetti strip) is drawn once on a CPU raster surface and cached.
+ * Never use a GPU offscreen surface here: creating one per render (what `useTexture` does when
+ * its size object changes) exhausted GL contexts and blanked the screen after a few moves.
+ */
+let sheetCache: SkImage | null = null;
+function spriteSheet(): SkImage | null {
+  if (sheetCache) return sheetCache;
+  const surface = Skia.Surface.Make(SPRITE * 2, SPRITE);
+  if (!surface) return null;
+  const canvas = surface.getCanvas();
+  const paint = Skia.Paint();
+  paint.setAntiAlias(true);
+  paint.setColor(Skia.Color('white'));
+  canvas.drawPath(starPath(), paint);
+  canvas.drawRRect(Skia.RRectXY(Skia.XYWHRect(SPRITE + 3, 5, SPRITE - 6, SPRITE - 10), 1.5, 1.5), paint);
+  surface.flush();
+  const snap = surface.makeImageSnapshot();
+  sheetCache = snap.makeNonTextureImage();
+  return sheetCache;
+}
+
+export const Particles = React.memo(
+  forwardRef<ParticlesHandle, { enabled: boolean }>(function Particles({ enabled }, ref) {
   const params = useSharedValue<number[]>(new Array(PARTICLE_CAP * STRIDE).fill(0).map((_, i) => (i % STRIDE === 5 ? 0 : -1)));
   const clock = useSharedValue(0);
   const [sprites, setSprites] = useState<SkRect[]>(() => new Array(PARTICLE_CAP).fill(SPARKLE_RECT));
   const [tints, setTints] = useState<SkColor[]>(() => new Array(PARTICLE_CAP).fill(Skia.Color('white')));
-  const [cursor, setCursor] = useState(0);
-  const star = useMemo(starPath, []);
-
-  const texture = useTexture(
-    <Group>
-      <Path path={star} color="white" />
-      <RoundedRect x={SPRITE + 3} y={5} width={SPRITE - 6} height={SPRITE - 10} r={1.5} color="white" />
-    </Group>,
-    { width: SPRITE * 2, height: SPRITE },
-  );
+  const cursor = useRef(0);
+  const texture = useMemo(spriteSheet, []);
 
   const transforms = useRSXformBuffer(PARTICLE_CAP, (val, i) => {
     'worklet';
@@ -91,7 +106,7 @@ export const Particles = forwardRef<ParticlesHandle, { enabled: boolean }>(funct
         const nextSprites = sprites.slice();
         const nextTints = tints.slice();
         const speed = o.speed ?? (o.kind === 'confetti' ? 620 : 260);
-        let c = cursor;
+        let c = cursor.current;
         let maxLife = 0;
         for (let n = 0; n < Math.min(o.count, PARTICLE_CAP); n++) {
           const slot = c % PARTICLE_CAP;
@@ -112,16 +127,17 @@ export const Particles = forwardRef<ParticlesHandle, { enabled: boolean }>(funct
           nextSprites[slot] = o.kind === 'confetti' ? CONFETTI_RECT : SPARKLE_RECT;
           nextTints[slot] = Skia.Color(o.colors[n % o.colors.length] as string);
         }
-        setCursor(c % PARTICLE_CAP);
+        cursor.current = c % PARTICLE_CAP;
         setSprites(nextSprites);
         setTints(nextTints);
         params.set(next);
         clock.set(withTiming(now + maxLife + 0.05, { duration: (maxLife + 0.05) * 1000, easing: Easing.linear }));
       },
     }),
-    [enabled, clock, params, sprites, tints, cursor],
+    [enabled, clock, params, sprites, tints],
   );
 
-  if (!enabled) return null;
+  if (!enabled || !texture) return null;
   return <Atlas image={texture} sprites={sprites} transforms={transforms} colors={tints} colorBlendMode="modulate" />;
-});
+  }),
+);

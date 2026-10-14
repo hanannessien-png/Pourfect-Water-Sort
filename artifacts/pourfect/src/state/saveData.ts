@@ -1,3 +1,4 @@
+import { DEFAULT_EQUIPPED, FREE_ITEMS, cosmetic, type CosmeticKind } from '@/src/config/cosmetics';
 import { ECONOMY } from '@/src/config/economy';
 import type { Move } from '@/src/game/types';
 
@@ -5,7 +6,7 @@ import type { Move } from '@/src/game/types';
  * One versioned save object. New fields get defaults through `sanitizeSave`, so adding a
  * field does not need a version bump; structural changes add a step to MIGRATIONS.
  */
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 export type GraphicsQuality = 'high' | 'low';
 export type MotionPref = 'auto' | 'on' | 'off';
@@ -54,6 +55,8 @@ export interface SaveData {
     owned: string[];
   };
   tutorial: { handDone: number[]; tooltipsSeen: string[] };
+  /** Daily limits. Day keys are local calendar days, "YYYY-MM-DD". */
+  daily: { giftDay: string; videoDay: string; videosWatched: number };
   stats: {
     levelsWon: number;
     pours: number;
@@ -76,10 +79,11 @@ export function defaultSave(now: number): SaveData {
     progress: { current: 1, stars: [], bestMoves: [] },
     settings: { haptics: true, colorBlind: false, reduceMotion: 'auto', graphics: 'high' },
     cosmetics: {
-      equipped: { tube: 'tube.classic', liquid: 'liquid.classic', background: 'bg.twilight', effect: 'fx.sparkle', cap: 'cap.cork' },
-      owned: ['tube.classic', 'liquid.classic', 'bg.twilight', 'fx.sparkle', 'cap.cork'],
+      equipped: { ...DEFAULT_EQUIPPED, effect: 'fx.sparkle', cap: 'cap.cork' },
+      owned: [...FREE_ITEMS],
     },
     tutorial: { handDone: [], tooltipsSeen: [] },
+    daily: { giftDay: '', videoDay: '', videosWatched: 0 },
     stats: { levelsWon: 0, pours: 0, threeStars: 0, hintsUsed: 0, undosUsed: 0, tubesAdded: 0, coinsEarned: 0 },
     resume: null,
   };
@@ -142,7 +146,14 @@ export function sanitizeSave(raw: Obj, now: number): SaveData {
   const eq = isObj(c.equipped) ? c.equipped : {};
   const tu = isObj(raw.tutorial) ? raw.tutorial : {};
   const st = isObj(raw.stats) ? raw.stats : {};
-  const owned = strArr(c.owned);
+  const owned = Array.from(new Set([...d.cosmetics.owned, ...strArr(c.owned)]));
+  const dy = isObj(raw.daily) ? raw.daily : {};
+  /** Equipped item must exist, be of the right kind and be owned; otherwise the default. */
+  const equip = (v: unknown, kind: CosmeticKind, fallback: string): string => {
+    const id = str(v, fallback);
+    const it = cosmetic(id);
+    return it && it.kind === kind && owned.includes(id) ? id : fallback;
+  };
   return {
     version: SAVE_VERSION,
     createdAt: num(raw.createdAt, d.createdAt),
@@ -162,15 +173,20 @@ export function sanitizeSave(raw: Obj, now: number): SaveData {
     },
     cosmetics: {
       equipped: {
-        tube: str(eq.tube, d.cosmetics.equipped.tube),
-        liquid: str(eq.liquid, d.cosmetics.equipped.liquid),
-        background: str(eq.background, d.cosmetics.equipped.background),
+        tube: equip(eq.tube, 'tube', d.cosmetics.equipped.tube),
+        liquid: equip(eq.liquid, 'liquid', d.cosmetics.equipped.liquid),
+        background: equip(eq.background, 'background', d.cosmetics.equipped.background),
         effect: str(eq.effect, d.cosmetics.equipped.effect),
         cap: str(eq.cap, d.cosmetics.equipped.cap),
       },
-      owned: Array.from(new Set([...d.cosmetics.owned, ...owned])),
+      owned,
     },
     tutorial: { handDone: numArr(tu.handDone, 100000), tooltipsSeen: strArr(tu.tooltipsSeen) },
+    daily: {
+      giftDay: typeof dy.giftDay === 'string' ? dy.giftDay : '',
+      videoDay: typeof dy.videoDay === 'string' ? dy.videoDay : '',
+      videosWatched: num(dy.videosWatched, 0, 0, 1000),
+    },
     stats: {
       levelsWon: num(st.levelsWon, 0),
       pours: num(st.pours, 0),
@@ -185,7 +201,10 @@ export function sanitizeSave(raw: Obj, now: number): SaveData {
 }
 
 /** Step n migrates a save of version n to n + 1. */
-export const MIGRATIONS: Record<number, (s: Obj) => Obj> = {};
+export const MIGRATIONS: Record<number, (s: Obj) => Obj> = {
+  // v1 → v2: the "Gilded Night" redesign replaced the placeholder cosmetics; equip the new defaults.
+  1: (s) => ({ ...s, version: 2, cosmetics: { equipped: { ...DEFAULT_EQUIPPED }, owned: [] } }),
+};
 
 export class SaveFormatError extends Error {}
 

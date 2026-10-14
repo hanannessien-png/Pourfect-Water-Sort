@@ -2,16 +2,17 @@ import React, { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FIXED_LEVEL_COUNT } from '@/src/config/difficulty';
 import { fixedLevel } from '@/src/data/levels';
 import { en } from '@/src/i18n/en';
 import { Backdrop } from '@/src/render/Backdrop';
 import { haptics } from '@/src/services/haptics';
-import { usePrefs } from '@/src/state/usePrefs';
 import { useSaveStore } from '@/src/state/useSaveStore';
 import { Button, IconButton } from '@/src/ui/Button';
-import { colors, fonts, radius, space } from '@/src/ui/theme';
+import { ScreenHeader } from '@/src/ui/ScreenHeader';
+import { colors, fonts, radius, space, textOutline } from '@/src/ui/theme';
 
 const PAGE = 50;
 const PAGES = Math.ceil(FIXED_LEVEL_COUNT / PAGE);
@@ -20,7 +21,6 @@ const isHard = (n: number) => fixedLevel(n).hard;
 
 export default function LevelsScreen() {
   const insets = useSafeAreaInsets();
-  const prefs = usePrefs();
   const current = useSaveStore((s) => s.save.progress.current);
   const stars = useSaveStore((s) => s.save.progress.stars);
   const [page, setPage] = useState(() => Math.min(PAGES - 1, Math.floor((Math.min(current, FIXED_LEVEL_COUNT) - 1) / PAGE)));
@@ -32,18 +32,12 @@ export default function LevelsScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top + space(1) }]}>
-      <Backdrop lowGfx={prefs.lowGfx} />
-      <View style={styles.header}>
-        <IconButton icon="chevron-back" label={en.common.back} onPress={() => router.back()} testID="levels-back" />
-        <Text style={styles.title} accessibilityRole="header">
-          {en.levels.title}
-        </Text>
-        <View style={{ width: 48 }} />
-      </View>
+      <Backdrop />
+      <ScreenHeader title={en.levels.title} testID="levels-back" />
 
       <View style={styles.pager}>
         <IconButton icon="chevron-back" label="Previous page" size={44} disabled={page === 0} onPress={() => setPage((p) => Math.max(0, p - 1))} />
-        <Text style={styles.pageLabel}>{en.levels.page(from, to)}</Text>
+        <Text style={[styles.pageLabel, textOutline]}>{en.levels.page(from, to)}</Text>
         <IconButton
           icon="chevron-forward"
           label="Next page"
@@ -75,26 +69,34 @@ export default function LevelsScreen() {
                 haptics.button();
                 open(n);
               }}
-              style={({ pressed }) => [
-                styles.cell,
-                hard && styles.cellHard,
-                isCurrent && styles.cellCurrent,
-                locked && styles.cellLocked,
-                pressed && { transform: [{ scale: 0.94 }] },
-              ]}
+              style={({ pressed }) => [styles.cellWrap, pressed && { transform: [{ scale: 0.92 }] }]}
             >
-              {locked ? (
-                <Ionicons name="lock-closed" size={20} color={colors.textFaint} />
-              ) : (
-                <>
-                  <Text style={styles.cellNum}>{n}</Text>
-                  <View style={styles.cellStars}>
-                    {[0, 1, 2].map((i) => (
-                      <Ionicons key={i} name="star" size={11} color={i < s ? colors.star : colors.starEmpty} />
-                    ))}
-                  </View>
-                </>
-              )}
+              <LinearGradient
+                colors={
+                  locked
+                    ? ['#2A1F45', '#1A1230']
+                    : isCurrent
+                      ? ['#FFF0A8', '#F5BD3C', '#C77A12']
+                      : hard
+                        ? ['#C23A58', '#7E1430', '#4E0A1E']
+                        : ['#5A3C98', '#3A2468', '#24154A']
+                }
+                style={[styles.cell, isCurrent && styles.cellCurrent, locked && styles.cellLocked, hard && !locked && !isCurrent && styles.cellHard]}
+              >
+                {locked ? (
+                  <Ionicons name="lock-closed" size={20} color="rgba(255,240,215,0.35)" />
+                ) : (
+                  <>
+                    <View style={styles.cellGloss} pointerEvents="none" />
+                    <Text style={[styles.cellNum, textOutline]}>{n}</Text>
+                    <View style={styles.cellStars}>
+                      {[0, 1, 2].map((i) => (
+                        <Ionicons key={i} name="star" size={11} color={i < s ? colors.star : 'rgba(0,0,0,0.35)'} />
+                      ))}
+                    </View>
+                  </>
+                )}
+              </LinearGradient>
             </Pressable>
           );
         }}
@@ -102,7 +104,7 @@ export default function LevelsScreen() {
           <View style={styles.footer}>
             <Text style={styles.footerText}>{en.levels.endless}</Text>
             {current > FIXED_LEVEL_COUNT && (
-              <Button label={en.home.level(current)} icon="infinite" variant="teal" onPress={() => open(current)} style={{ marginTop: space(1.5) }} />
+              <Button label={en.home.level(current)} icon="infinite" variant="sapphire" onPress={() => open(current)} style={{ marginTop: space(1.5) }} />
             )}
           </View>
         }
@@ -113,8 +115,6 @@ export default function LevelsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space(2) },
-  title: { fontFamily: fonts.bold, fontSize: 28, color: colors.text },
   pager: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -123,25 +123,25 @@ const styles = StyleSheet.create({
     marginTop: space(2),
     marginBottom: space(1),
   },
-  pageLabel: { fontFamily: fonts.semibold, fontSize: 18, color: colors.text, minWidth: 90, textAlign: 'center' },
+  pageLabel: { fontFamily: fonts.display, fontSize: 22, color: colors.text, minWidth: 100, textAlign: 'center' },
   grid: { paddingHorizontal: space(2), paddingTop: space(1) },
   gridRow: { gap: space(1.25), marginBottom: space(1.25) },
+  cellWrap: { flex: 1, aspectRatio: 1, maxWidth: 76 },
   cell: {
     flex: 1,
-    aspectRatio: 1,
-    maxWidth: 76,
     borderRadius: radius.md,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
+    borderWidth: 2,
+    borderColor: 'rgba(247,201,72,0.8)',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
-  cellHard: { borderColor: 'rgba(255,93,115,0.7)' },
-  cellCurrent: { backgroundColor: 'rgba(255,122,102,0.28)', borderColor: colors.coral, borderWidth: 2 },
-  cellLocked: { backgroundColor: 'rgba(255,255,255,0.04)' },
-  cellNum: { fontFamily: fonts.bold, fontSize: 20, color: colors.text },
-  cellStars: { flexDirection: 'row', marginTop: 2 },
+  cellHard: { borderColor: '#FF8EA0' },
+  cellCurrent: { borderColor: '#FFFFFF', borderWidth: 2.5 },
+  cellLocked: { borderColor: 'rgba(247,201,72,0.2)' },
+  cellGloss: { position: 'absolute', top: 2, left: 4, right: 4, height: '40%', borderRadius: radius.sm, backgroundColor: 'rgba(255,255,255,0.14)' },
+  cellNum: { fontFamily: fonts.display, fontSize: 22, color: '#FFFFFF' },
+  cellStars: { flexDirection: 'row', marginTop: 1 },
   footer: { alignItems: 'center', paddingTop: space(2) },
   footerText: { fontFamily: fonts.medium, fontSize: 14, color: colors.textMuted, textAlign: 'center' },
 });

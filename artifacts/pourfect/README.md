@@ -50,6 +50,9 @@ Decisions taken without asking, as the spec requires. Where `BUILD_BRIEF.md` dif
 7. **Resume:** one slot. A campaign resume is discarded if the saved board no longer matches the fixed level; endless levels resume from the save without regenerating.
 8. **Jest without jest-expo.** jest-expo did not work with this SDK setup; tests cover the pure modules with a Babel transform. `jest` 30 is excluded from Expo's version check (`expo.install.exclude`) because the app does not use jest-expo.
 9. **Deferred to Phase 4+:** tutorial hand, booster tooltips, skip-level via rewarded ad, banner space, audio toggles.
+10. Shop currency is coins only (wins, rewarded videos, daily gift); no real-money purchases. Prices live in `src/config/cosmetics.ts`; item ids are stored in saves and must never be renamed.
+11. Rewarded videos are capped at 20 per day across all placements; a mock ad screen stands in until real ad IDs are added.
+12. Shop previews are drawn with plain views (not Skia) so a screen full of cards doesn't create dozens of GPU contexts.
 
 ## Web preview (development only)
 - Skia on the web needs CanvasKit WebAssembly. `src/boot.web.ts` loads it from the jsDelivr CDN, pinned to the exact `canvaskit-wasm` version Skia uses, then starts the router. If the browser has no WebGL, it switches CanvasKit to CPU rendering.

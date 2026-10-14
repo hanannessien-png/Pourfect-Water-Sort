@@ -16,3 +16,6 @@ description: Non-obvious build/lint/test environment fixes for the Expo SDK 57 g
 - **Skia web preview:** needs CanvasKit wasm loaded before expo-router starts (`index.js` → `src/boot(.web).ts`). The screenshot browser has no WebGL; boot.web swaps `MakeWebGLCanvasSurface` → `MakeSWCanvasSurface` and unsets `OffscreenCanvas` so canvases render. `JsiSkFont.measureText` throws on web — use `getTextWidth`.
 
 - **Metro serves from the workspace root:** fetch native bundles at `/artifacts/pourfect/index.bundle?platform=android` to check the Android build.
+
+- **Never build Skia textures/offscreen surfaces per render.** `useTexture` with an inline size object made a new GPU surface on every render; it leaked WebGL contexts and white-screened the game after a few moves. Build sprite sheets once (CPU raster surface, module-level cache).
+  **How to apply:** for lists of previews (shop cards) draw with plain Views, not one Skia Canvas per item — web caps live WebGL contexts at ~16.

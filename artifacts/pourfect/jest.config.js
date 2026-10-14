@@ -2,7 +2,10 @@
 module.exports = {
   testEnvironment: 'node',
   testMatch: ['<rootDir>/src/**/__tests__/**/*.test.ts'],
-  moduleNameMapper: { '^@/(.*)$': '<rootDir>/$1' },
+  moduleNameMapper: {
+    '\\.(jpg|jpeg|png|webp)$': '<rootDir>/src/__mocks__/asset.js',
+    '^@/(.*)$': '<rootDir>/$1',
+  },
   transform: {
     '^.+\\.ts$': [
       'babel-jest',

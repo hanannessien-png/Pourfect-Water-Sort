@@ -53,6 +53,8 @@ export function useGame(level: number) {
   const [winKey, setWinKey] = useState(0);
   const [toast, setToast] = useState<{ message: string; id: number } | null>(null);
   const [confirmRestart, setConfirmRestart] = useState(false);
+  /** Booster the player tried to use with no tokens left (opens the "get more" sheet). */
+  const [need, setNeed] = useState<'undo' | 'hint' | 'tube' | null>(null);
 
   const sRef = useRef<SessionState | null>(null);
   const pourRef = useRef<ActivePour | null>(null);
@@ -249,7 +251,7 @@ export function useGame(level: number) {
       return;
     }
     if (!spend('undo')) {
-      say(en.game.outOfTokens(en.game.undo));
+      setNeed('undo');
       return;
     }
     const r = undoLast(s);
@@ -272,7 +274,7 @@ export function useGame(level: number) {
       return;
     }
     if (!spend('tube')) {
-      say(en.game.outOfTokens(en.game.addTube));
+      setNeed('tube');
       return;
     }
     const next = addTube(s);
@@ -316,7 +318,7 @@ export function useGame(level: number) {
       return;
     }
     if (!spend('hint')) {
-      say(en.game.outOfTokens(en.game.hint));
+      setNeed('hint');
       return;
     }
     const next = { ...s, hintsUsed: s.hintsUsed + 1 };
@@ -371,6 +373,8 @@ export function useGame(level: number) {
     doRestart,
     cancelRestart: () => setConfirmRestart(false),
     dismissStuck: () => setStuck(null),
+    need,
+    clearNeed: () => setNeed(null),
     canAddMore: session ? canAddTube(session) : false,
   };
 }

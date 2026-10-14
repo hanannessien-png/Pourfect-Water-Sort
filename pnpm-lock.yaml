@@ -409,6 +409,9 @@ importers:
       '@expo-google-fonts/fredoka':
         specifier: ^0.4.1
         version: 0.4.1
+      '@expo-google-fonts/lilita-one':
+        specifier: ^0.4.1
+        version: 0.4.1
       '@shopify/react-native-skia':
         specifier: 2.6.2
         version: 2.6.2(react-native-reanimated@4.5.1(react-native-worklets@0.10.1(@babel/core@7.29.7)(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.3))(react@19.2.3))(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.3))(react@19.2.3))(react-native@0.86.3(@babel/core@7.29.7)(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)
@@ -1372,6 +1375,9 @@ packages:
 
   '@expo-google-fonts/inter@0.4.2':
     resolution: {integrity: sha512-syfiImMaDmq7cFi0of+waE2M4uSCyd16zgyWxdPOY7fN2VBmSLKEzkfbZgeOjJq61kSqPBNNtXjggiQiSD6gMQ==}
+
+  '@expo-google-fonts/lilita-one@0.4.1':
+    resolution: {integrity: sha512-/qkaTVWNivWLsdJvPUZ/XNr/azhKEUCE0OYrBZMj33ErtdHJCfuUh69XKm1FhoOTNVjNtyEvEUB0uerModvbEQ==}
 
   '@expo-google-fonts/material-symbols@0.4.50':
     resolution: {integrity: sha512-XNSgSfd+1p6wqRAzzhrckGngHJQ1/z+oCMdI5FN+x/VnDeMMFGkXsuRNPYcZTYYff1GwVwx4u6Gqnb30aALysw==}
@@ -7930,6 +7936,8 @@ snapshots:
   '@expo-google-fonts/fredoka@0.4.1': {}
 
   '@expo-google-fonts/inter@0.4.2': {}
+
+  '@expo-google-fonts/lilita-one@0.4.1': {}
 
   '@expo-google-fonts/material-symbols@0.4.50': {}
 

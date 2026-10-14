@@ -4,6 +4,7 @@ import { Canvas, Circle, Group, Path, useFont, usePathValue } from '@shopify/rea
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Easing, useDerivedValue, useSharedValue, withTiming, type SharedValue } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
+import type { TubeSkin } from '@/src/config/cosmetics';
 import { en } from '@/src/i18n/en';
 import { codeColor, codeHidden } from '@/src/game/codec';
 import { isTubeComplete } from '@/src/game/rules';
@@ -45,6 +46,7 @@ export interface BoardProps {
   hint: PourRef | null;
   shake: { index: number; key: number };
   shades: readonly LiquidShades[];
+  skin: TubeSkin;
   colorBlind: boolean;
   lowGfx: boolean;
   reduceMotion: boolean;
@@ -91,7 +93,7 @@ function describeTube(tube: string, complete: boolean, selected: boolean): strin
 }
 
 export function Board(props: BoardProps) {
-  const { area, board, totals, pour, shades, lowGfx, reduceMotion } = props;
+  const { area, board, totals, pour, shades, lowGfx, reduceMotion, skin } = props;
   const capsKey = board.caps.join(',');
   const layout: BoardLayout = useMemo(
     () => computeLayout(board.caps, area.width, area.height),
@@ -102,10 +104,10 @@ export function Board(props: BoardProps) {
   const shapes = useMemo(() => {
     const m = new Map<number, TubeShape>();
     for (const t of layout.tubes) {
-      if (!m.has(t.capacity)) m.set(t.capacity, makeTubeShape(t.w, t.h, W * GEOM.BASE));
+      if (!m.has(t.capacity)) m.set(t.capacity, makeTubeShape(t.w, t.h, W * GEOM.BASE, skin.bottom));
     }
     return m;
-  }, [layout, W]);
+  }, [layout, W, skin.bottom]);
   const font = useFont(FREDOKA_BOLD, Math.max(10, layout.unit * 0.6));
 
   // ---- Pour animation ------------------------------------------------------------------
@@ -289,6 +291,7 @@ export function Board(props: BoardProps) {
                 key={i}
                 rect={r}
                 shape={shape}
+                skin={skin}
                 layers={tube}
                 shades={shades}
                 font={font}
@@ -314,6 +317,7 @@ export function Board(props: BoardProps) {
               shape={shapes.get(layout.tubes[pour.move.from]!.capacity)!}
               layers={pour.prev.tubes[pour.move.from] ?? ''}
               shades={shades}
+              skin={skin}
             />
           )}
           {pour && (

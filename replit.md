@@ -19,7 +19,8 @@ Android-only, fully offline water-sort puzzle game (Expo + React Native + Skia),
 
 - `artifacts/pourfect/PROGRESS.md` — phase status, checks, next steps
 - `artifacts/pourfect/README.md` — commands, where to change package name / ad IDs, decisions log
-- `artifacts/pourfect/src/game` — pure engine; `src/render` — Skia board; `src/state` — save/session
+- `artifacts/pourfect/src/game` — pure engine; `src/render` — Skia board; `src/state` — save/session/shop
+- `artifacts/pourfect/src/config/cosmetics.ts` — shop catalogue and prices (coins only); `src/ui/theme.ts` — "Gilded Night" palette
 - `artifacts/pourfect/src/data/levels.fixed.json` — 300 generated, solver-verified levels
 
 ## Architecture decisions

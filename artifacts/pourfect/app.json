@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "pourfect",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#1B1442",
+    "backgroundColor": "#120A26",
     "ios": {
       "supportsTablet": false
     },
@@ -15,8 +15,8 @@
       "package": "com.apexinteractive.pourfect",
       "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
-        "backgroundColor": "#1B1442"
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#120A26"
       },
       "permissions": [
         "android.permission.INTERNET",
@@ -43,9 +43,9 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#1B1442",
-          "image": "./assets/images/icon.png",
-          "imageWidth": 160
+          "backgroundColor": "#120A26",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 180
         }
       ],
       [

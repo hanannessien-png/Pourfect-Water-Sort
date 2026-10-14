@@ -25,13 +25,14 @@ import {
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
+import type { TubeSkin } from '@/src/config/cosmetics';
 import { codeColor, codeHidden } from '@/src/game/codec';
 import { colors } from '@/src/ui/theme';
 import { GEOM, type TubeRect } from './layout';
 import type { LiquidShades } from './palettes';
 import { makeSymbol, type TubeShape } from './shapes';
 
-export const HIDDEN_FILL = { base: '#3B3474', light: '#4A4290', dark: '#2A2459' } as const;
+export const HIDDEN_FILL = { base: '#2E2150', light: '#45336F', dark: '#1B1233' } as const;
 
 export interface IncomingLiquid {
   color: number;
@@ -42,6 +43,7 @@ export interface IncomingLiquid {
 export interface TubeViewProps {
   rect: TubeRect;
   shape: TubeShape;
+  skin: TubeSkin;
   /** Compact tube string, bottom → top. */
   layers: string;
   shades: readonly LiquidShades[];
@@ -220,20 +222,29 @@ export const TubeView = React.memo(function TubeView(p: TubeViewProps) {
   const b2 = useBubble(fx, 2, bubbleXs[2]!, innerBottom, surfaceY, w);
   const bubbles = [b0, b1, b2];
 
-  const shadowOpacity = useDerivedValue(() => 0.38 - liftNorm.value * 0.18);
-  const outlineW = Math.max(1.2, w * 0.035);
+  const shadowOpacity = useDerivedValue(() => 0.5 - liftNorm.value * 0.22);
+  const skin = p.skin;
+  const outlineW = Math.max(1.4, w * skin.edgeW);
   const glowColor = p.hinted && !p.selected ? colors.hint : colors.selectGlow;
   const glyphSize = p.font?.getSize() ?? 0;
   const glyphW = useMemo(() => (p.font ? p.font.getTextWidth('?') : 0), [p.font]);
+  const h = rect.h;
 
   return (
     <Group opacity={appear}>
       {/* Contact shadow on the shelf */}
-      <Oval x={shadowX} y={shadowY} width={w * 0.84} height={w * 0.18} color="#05031A" opacity={shadowOpacity}>
-        {!lowGfx && <BlurMask blur={w * 0.08} style="normal" />}
+      <Oval x={shadowX} y={shadowY} width={w * 0.84} height={w * 0.2} color="#000000" opacity={shadowOpacity}>
+        {!lowGfx && <BlurMask blur={w * 0.09} style="normal" />}
       </Oval>
       <Group transform={transform}>
-        <Path path={shape.outer} color="rgba(255,255,255,0.07)" />
+        {/* Selection / hint glow behind the glass */}
+        <Path path={shape.outline} style="stroke" strokeWidth={outlineW * 3.2} color={glowColor} opacity={glowOpacity}>
+          {!lowGfx && <BlurMask blur={w * 0.14} style="normal" />}
+        </Path>
+        {/* Back glass */}
+        <Path path={shape.outer} color={skin.glass}>
+          {!lowGfx && <LinearGradient start={vec(0, 0)} end={vec(w, 0)} colors={['rgba(0,0,0,0.28)', skin.glass, 'rgba(0,0,0,0.18)']} positions={[0, 0.45, 1]} />}
+        </Path>
         <Group clip={shape.inner}>
           {bands.map((b, k) => (
             <Rect key={k} x={0} y={b.y} width={w} height={b.h + 0.75} color={b.shade.base}>
@@ -242,7 +253,7 @@ export const TubeView = React.memo(function TubeView(p: TubeViewProps) {
                   start={vec(0, 0)}
                   end={vec(w, 0)}
                   colors={[b.shade.dark, b.shade.base, b.shade.light, b.shade.base, b.shade.dark]}
-                  positions={[0, 0.22, 0.42, 0.72, 1]}
+                  positions={[0, 0.2, 0.4, 0.72, 1]}
                 />
               )}
             </Rect>
@@ -254,18 +265,18 @@ export const TubeView = React.memo(function TubeView(p: TubeViewProps) {
                   start={vec(0, 0)}
                   end={vec(w, 0)}
                   colors={[inShade.dark, inShade.base, inShade.light, inShade.base, inShade.dark]}
-                  positions={[0, 0.22, 0.42, 0.72, 1]}
+                  positions={[0, 0.2, 0.4, 0.72, 1]}
                 />
               )}
             </Rect>
           )}
           {bands.map((b, k) =>
-            b.edge ? <Rect key={`e${k}`} x={0} y={b.y + b.h - 0.75} width={w} height={1.2} color="rgba(255,255,255,0.22)" /> : null,
+            b.edge ? <Rect key={`e${k}`} x={0} y={b.y + b.h - 1} width={w} height={1.4} color="rgba(0,0,0,0.22)" /> : null,
           )}
           {hasLiquid && top && (
             <>
               <Path path={crest} color={top.base} />
-              <Rect x={0} y={surfaceY} width={w} height={Math.max(1.5, unit * 0.06)} color={top.light} opacity={0.9} />
+              <Rect x={0} y={surfaceY} width={w} height={Math.max(2, unit * 0.09)} color={top.light} opacity={0.95} />
             </>
           )}
           {bands.map((b, k) =>
@@ -276,7 +287,7 @@ export const TubeView = React.memo(function TubeView(p: TubeViewProps) {
                 y={b.y + unit / 2 + glyphSize * 0.36}
                 text="?"
                 font={p.font}
-                color="rgba(255,255,255,0.82)"
+                color="rgba(255,226,150,0.9)"
               />
             ) : null,
           )}
@@ -287,19 +298,25 @@ export const TubeView = React.memo(function TubeView(p: TubeViewProps) {
           {!lowGfx && !reduceMotion && len > 0 &&
             bubbles.map((b, i) => <Circle key={`b${i}`} cx={b.cx} cy={b.cy} r={b.r} color="rgba(255,255,255,0.55)" />)}
         </Group>
-        <Path path={shape.highlight} color="rgba(255,255,255,0.26)" />
-        <Path path={shape.outline} style="stroke" strokeWidth={outlineW} color="rgba(255,255,255,0.62)" />
-        <Path path={shape.outline} style="stroke" strokeWidth={outlineW * 2.4} color={glowColor} opacity={glowOpacity}>
-          {!lowGfx && <BlurMask blur={w * 0.1} style="solid" />}
-        </Path>
+        {/* Front glass: gloss streak, right-edge reflection, outline */}
+        <Path path={shape.highlight} color={`rgba(255,255,255,${skin.gloss})`} />
+        <Rect x={w - g - w * 0.1} y={w * 0.35} width={Math.max(1, w * 0.045)} height={Math.max(4, h * 0.55)} color="rgba(255,255,255,0.12)" />
+        <Path path={shape.outline} style="stroke" strokeWidth={outlineW + 1.5} color="rgba(0,0,0,0.35)" />
+        <Path path={shape.outline} style="stroke" strokeWidth={outlineW} color={skin.edge} />
         <Path path={shape.outline} style="stroke" strokeWidth={outlineW * 1.6} color={colors.danger} opacity={flash} />
-        <RoundedRect x={-w * 0.07} y={-w * 0.05} width={w * 1.14} height={w * 0.13} r={w * 0.06} color="rgba(255,255,255,0.42)" />
+        {/* Lip ring */}
+        <RoundedRect x={-w * 0.09} y={-w * 0.07} width={w * 1.18} height={w * 0.17} r={w * 0.085} color={skin.rim[1]}>
+          <LinearGradient start={vec(0, -w * 0.07)} end={vec(0, w * 0.1)} colors={[skin.rim[0], skin.rim[1], skin.rim[2]]} />
+        </RoundedRect>
+        <RoundedRect x={-w * 0.02} y={-w * 0.05} width={w * 0.5} height={w * 0.04} r={w * 0.02} color="rgba(255,255,255,0.55)" />
         {p.complete && (
           <Group transform={capTransform} opacity={capOpacity}>
-            <RoundedRect x={w * 0.1} y={-w * 0.36} width={w * 0.8} height={w * 0.48} r={w * 0.12} color="#C9945A" />
-            <RoundedRect x={w * 0.1} y={-w * 0.36} width={w * 0.8} height={w * 0.14} r={w * 0.07} color="#E2B57C" />
-            <Rect x={w * 0.3} y={-w * 0.18} width={w * 0.06} height={w * 0.24} color="rgba(120,74,32,0.45)" />
-            <Rect x={w * 0.6} y={-w * 0.2} width={w * 0.06} height={w * 0.22} color="rgba(120,74,32,0.45)" />
+            <RoundedRect x={w * 0.08} y={-w * 0.4} width={w * 0.84} height={w * 0.42} r={w * 0.13} color={skin.cap[1]}>
+              <LinearGradient start={vec(0, -w * 0.4)} end={vec(0, w * 0.02)} colors={[skin.cap[0], skin.cap[1], skin.cap[2]]} />
+            </RoundedRect>
+            <RoundedRect x={w * 0.16} y={-w * 0.36} width={w * 0.5} height={w * 0.07} r={w * 0.035} color="rgba(255,255,255,0.55)" />
+            <Circle cx={w / 2} cy={-w * 0.19} r={w * 0.09} color="rgba(255,255,255,0.35)" />
+            <Circle cx={w / 2} cy={-w * 0.19} r={w * 0.055} color={skin.rim[0]} />
           </Group>
         )}
       </Group>

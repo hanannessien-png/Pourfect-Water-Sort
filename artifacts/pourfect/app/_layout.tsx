@@ -9,10 +9,12 @@ import {
   Fredoka_700Bold,
   useFonts,
 } from '@expo-google-fonts/fredoka';
+import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { RewardedHost } from '@/src/ads/rewarded';
 import { useSaveStore } from '@/src/state/useSaveStore';
 import { colors } from '@/src/ui/theme';
 
@@ -25,6 +27,7 @@ export default function RootLayout() {
     Fredoka_500Medium,
     Fredoka_600SemiBold,
     Fredoka_700Bold,
+    LilitaOne_400Regular,
   });
   const ready = useSaveStore((s) => s.ready);
   const hydrate = useSaveStore((s) => s.hydrate);
@@ -68,7 +71,9 @@ export default function RootLayout() {
             <Stack.Screen name="game" options={{ gestureEnabled: false }} />
             <Stack.Screen name="levels" />
             <Stack.Screen name="settings" />
+            <Stack.Screen name="shop" />
           </Stack>
+          <RewardedHost />
         </GestureHandlerRootView>
       </ErrorBoundary>
     </SafeAreaProvider>

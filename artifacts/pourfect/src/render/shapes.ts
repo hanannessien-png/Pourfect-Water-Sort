@@ -22,34 +22,35 @@ export interface TubeShape {
   highlight: SkPath;
 }
 
-export function makeTubeShape(w: number, h: number, base: number): TubeShape {
+export type TubeBottom = 'round' | 'flat';
+
+/** Open-topped U path: walls from (x0, top) down to a round or flat bottom ending at `bottom`. */
+function uPath(x0: number, x1: number, top: number, bottom: number, kind: TubeBottom, close: boolean): SkPath {
+  const w = x1 - x0;
+  const b = Skia.PathBuilder.Make().moveTo(x0, top);
+  if (kind === 'round') {
+    const r = w / 2;
+    b.lineTo(x0, bottom - r).arcToOval(Skia.XYWHRect(x0, bottom - 2 * r, 2 * r, 2 * r), 180, -180, false);
+  } else {
+    const r = w * 0.26;
+    b.lineTo(x0, bottom - r)
+      .arcToOval(Skia.XYWHRect(x0, bottom - 2 * r, 2 * r, 2 * r), 180, -90, false)
+      .lineTo(x1 - r, bottom)
+      .arcToOval(Skia.XYWHRect(x1 - 2 * r, bottom - 2 * r, 2 * r, 2 * r), 90, -90, false);
+  }
+  b.lineTo(x1, top);
+  if (close) b.close();
+  return b.build();
+}
+
+export function makeTubeShape(w: number, h: number, base: number, bottom: TubeBottom = 'round'): TubeShape {
   const g = Math.max(1.5, w * 0.06);
-  const r = w / 2;
   const innerBottom = h - base;
-  const ri = r - g;
+  const r = bottom === 'round' ? w / 2 : w * 0.26;
 
-  const outer = Skia.PathBuilder.Make()
-    .moveTo(0, 0)
-    .lineTo(0, h - r)
-    .arcToOval(Skia.XYWHRect(0, h - 2 * r, 2 * r, 2 * r), 180, -180, false)
-    .lineTo(w, 0)
-    .close()
-    .build();
-
-  const outline = Skia.PathBuilder.Make()
-    .moveTo(0, 0)
-    .lineTo(0, h - r)
-    .arcToOval(Skia.XYWHRect(0, h - 2 * r, 2 * r, 2 * r), 180, -180, false)
-    .lineTo(w, 0)
-    .build();
-
-  const inner = Skia.PathBuilder.Make()
-    .moveTo(g, 0)
-    .lineTo(g, innerBottom - ri)
-    .arcToOval(Skia.XYWHRect(g, innerBottom - 2 * ri, 2 * ri, 2 * ri), 180, -180, false)
-    .lineTo(w - g, 0)
-    .close()
-    .build();
+  const outer = uPath(0, w, 0, h, bottom, true);
+  const outline = uPath(0, w, 0, h, bottom, false);
+  const inner = uPath(g, w - g, 0, innerBottom, bottom, true);
 
   // Glossy streak along the left wall.
   const sx = g + w * 0.1;
