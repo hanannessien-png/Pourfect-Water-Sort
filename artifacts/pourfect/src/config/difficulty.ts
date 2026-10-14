@@ -4,11 +4,12 @@ import { createRng, hashString } from '@/src/game/prng';
  * Difficulty ramp. Every knob for level generation lives here so it can be tuned
  * without touching engine code. `levelSpec(n)` is deterministic for a given level.
  *
- *   1–5     tutorial: 2–3 colours, capacity 4, 1–2 empty tubes
- *   6–20    4–6 colours, 2 empty
- *   21–60   6–9 colours, 2 empty
- *   61–120  8–11 colours, capacity 4–5, hidden layers from level 80
- *   121–300 10–14 colours, capacity 5–6, hidden 20–50 %, mixed-size specials
+ *   1–3     tutorial: 2–4 colours, capacity 4, 1–2 empty tubes
+ *   4–12    5–7 colours, 2 empty
+ *   13–40   7–10 colours, 2 empty
+ *   41–100  9–12 colours, capacity 4–5, hidden layers from level 50
+ *   101–300 11–14 colours, capacity 5–6, hidden 25–50 %, mixed-size specials
+ *   (Owner asked for a steeper ramp; bands were raised accordingly.)
  *   301+    endless: capacity 5–8, up to 16 colours, ≤ 100 layers, ≤ 18 tubes
  *   Every 10th level is Hard: higher band, double rewards, one extra Add Tube allowed.
  */
@@ -37,12 +38,12 @@ export interface LevelSpec {
 
 /** Difficulty bands per range (score 0–100, see game/difficulty.ts). */
 export const BANDS = {
-  tutorial: [0, 45],
-  early: [30, 62],
-  mid: [45, 72],
-  late: [52, 80],
-  expert: [58, 92],
-  endless: [60, 100],
+  tutorial: [0, 50],
+  early: [44, 72],
+  mid: [54, 82],
+  late: [60, 88],
+  expert: [64, 95],
+  endless: [66, 100],
 } as const;
 
 /** How much harder Hard levels are allowed/required to be. */
@@ -77,8 +78,8 @@ export function levelSpec(level: number): LevelSpec {
   const hard = isHardLevel(level);
   const maxAddTubes = hard ? 2 : 1;
 
-  if (level <= 5) {
-    const table: Record<number, [number, number]> = { 1: [2, 1], 2: [3, 2], 3: [3, 2], 4: [3, 2], 5: [3, 1] };
+  if (level <= 3) {
+    const table: Record<number, [number, number]> = { 1: [2, 1], 2: [3, 2], 3: [4, 2] };
     const [colors, empties] = table[level] ?? [3, 2];
     return {
       level,
@@ -87,31 +88,31 @@ export function levelSpec(level: number): LevelSpec {
       hiddenRatio: 0,
       mixed: false,
       hard: false,
-      scramble: lerp(0.45, 0.8, (level - 1) / 4),
+      scramble: lerp(0.6, 1, (level - 1) / 2),
       band: BANDS.tutorial,
-      rejectGreedy: false,
+      rejectGreedy: level === 3,
       maxAddTubes,
     };
   }
 
-  if (level <= 20) {
-    const colors = 4 + Math.floor((level - 6) / 5);
+  if (level <= 12) {
+    const colors = 5 + Math.floor((level - 4) / 3) + (hard ? 1 : 0);
     return {
       level,
-      colorCaps: Array(colors + (hard ? 1 : 0)).fill(4),
+      colorCaps: Array(colors).fill(4),
       emptyCaps: [4, 4],
       hiddenRatio: 0,
       mixed: false,
       hard,
-      scramble: lerp(0.65, 1, (level - 6) / 14),
+      scramble: 1,
       band: shift(BANDS.early, hard),
       rejectGreedy: true,
       maxAddTubes,
     };
   }
 
-  if (level <= 60) {
-    const colors = Math.min(9, 6 + Math.floor((level - 21) / 10) + (hard ? 1 : 0));
+  if (level <= 40) {
+    const colors = Math.min(10, 7 + Math.floor((level - 13) / 7) + (hard ? 1 : 0));
     return {
       level,
       colorCaps: Array(colors).fill(4),
@@ -126,10 +127,10 @@ export function levelSpec(level: number): LevelSpec {
     };
   }
 
-  if (level <= 120) {
-    const colors = Math.min(11, 8 + Math.floor((level - 61) / 15) + (hard ? 1 : 0));
-    const cap = level >= 90 && level % 2 === 1 ? 5 : 4;
-    const hiddenRatio = level >= 80 && rng.chance(0.6) ? lerp(0.1, 0.3, (level - 80) / 40) : 0;
+  if (level <= 100) {
+    const colors = Math.min(12, 9 + Math.floor((level - 41) / 15) + (hard ? 1 : 0));
+    const cap = level >= 60 && level % 2 === 1 ? 5 : 4;
+    const hiddenRatio = level >= 50 && rng.chance(0.55) ? lerp(0.15, 0.35, (level - 50) / 50) : 0;
     return {
       level,
       colorCaps: Array(colors).fill(cap),
@@ -145,14 +146,14 @@ export function levelSpec(level: number): LevelSpec {
   }
 
   if (level <= FIXED_LEVEL_COUNT) {
-    const colors = Math.min(14, 10 + Math.floor((level - 121) / 45) + (hard ? 1 : 0));
+    const colors = Math.min(14, 11 + Math.floor((level - 101) / 50) + (hard ? 1 : 0));
     const mixed = level % 7 === 0;
-    const baseCap = level < 200 ? rng.pick([5, 5, 6]) : rng.pick([5, 6, 6]);
+    const baseCap = level < 180 ? rng.pick([5, 5, 6]) : rng.pick([5, 6, 6]);
     const colorCaps = mixed
       ? Array.from({ length: colors }, (_, i) => [4, 5, 6][i % 3] as number)
       : Array(colors).fill(baseCap);
     const maxCap = Math.max(...colorCaps);
-    const hiddenRatio = rng.chance(0.7) ? lerp(0.2, 0.5, (level - 121) / 180) : 0;
+    const hiddenRatio = rng.chance(0.7) ? lerp(0.25, 0.5, (level - 101) / 200) : 0;
     return {
       level,
       colorCaps,

@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FIXED_LEVEL_COUNT } from '@/src/config/difficulty';
 import { fixedLevel } from '@/src/data/levels';
+import { BannerSlot } from '@/src/ads/BannerSlot';
 import { en } from '@/src/i18n/en';
 import { Backdrop } from '@/src/render/Backdrop';
 import { haptics } from '@/src/services/haptics';
@@ -53,7 +54,7 @@ export default function LevelsScreen() {
         numColumns={COLS}
         keyExtractor={(n) => String(n)}
         columnWrapperStyle={styles.gridRow}
-        contentContainerStyle={[styles.grid, { paddingBottom: insets.bottom + space(4) }]}
+        contentContainerStyle={[styles.grid, { paddingBottom: space(3) }]}
         renderItem={({ item: n }) => {
           const locked = n > current;
           const s = stars[n - 1] ?? 0;
@@ -109,6 +110,9 @@ export default function LevelsScreen() {
           </View>
         }
       />
+      <View style={{ paddingBottom: insets.bottom }}>
+        <BannerSlot />
+      </View>
     </View>
   );
 }

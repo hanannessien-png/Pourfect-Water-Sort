@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { showPrivacyOptions, useAdState } from '@/src/ads/service';
 import { BRAND } from '@/src/config/brand';
 import { en } from '@/src/i18n/en';
 import { Backdrop } from '@/src/render/Backdrop';
@@ -74,6 +75,8 @@ export default function SettingsScreen() {
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) =>
     update((s) => ({ ...s, settings: { ...s.settings, [key]: value } }), 'now');
 
+  const privacyRequired = useAdState((st) => st.privacyRequired);
+
   const switchProps = {
     trackColor: { false: 'rgba(255,255,255,0.18)', true: colors.emeraldDeep },
     thumbColor: colors.goldHi,
@@ -134,6 +137,17 @@ export default function SettingsScreen() {
 
         <Panel>
           <Button label={en.settings.howToPlay} icon="help-circle" variant="plum" onPress={() => setHowOpen(true)} />
+          {privacyRequired && (
+            <Button
+              label={en.settings.privacy}
+              icon="shield-checkmark"
+              variant="plum"
+              onPress={() => void showPrivacyOptions()}
+              style={{ marginTop: space(1) }}
+              accessibilityHint={en.settings.privacyHint}
+              testID="settings-privacy"
+            />
+          )}
           <Button
             label={en.settings.resetProgress}
             icon="trash"

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, ZoomIn } from 'react-native-reanimated';
+import { noteModal, useAdState } from '@/src/ads/service';
 import { en } from '@/src/i18n/en';
 import { onHardwareBack } from '@/src/services/backButton';
 import { Panel, Ribbon } from './bits';
@@ -12,7 +13,7 @@ import { colors, fonts, space } from './theme';
  * close button call `onDismiss` when provided (otherwise the sheet is modal-only, e.g. the win screen).
  */
 export function Sheet({
-  visible,
+  visible: requested,
   title,
   subtitle,
   onDismiss,
@@ -28,6 +29,17 @@ export function Sheet({
   testID?: string;
   ribbon?: 'ruby' | 'emerald' | 'sapphire';
 }) {
+  // Sheets step aside while a full-screen ad is up, and come back when it closes.
+  const adUp = useAdState((s) => s.fullscreen);
+  const visible = requested && !adUp;
+
+  // App-open ads never cover an open sheet.
+  useEffect(() => {
+    if (!visible) return;
+    noteModal(true);
+    return () => noteModal(false);
+  }, [visible]);
+
   useEffect(() => {
     if (!visible) return;
     return onHardwareBack(() => {

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import { ECONOMY } from '@/src/config/economy';
 import { SOLVER_LIMITS } from '@/src/config/difficulty';
+import { TIMER, timeLimitMs } from '@/src/config/timer';
 import { getLevel, isEndless, pregenerate } from '@/src/data/levels';
 import { en } from '@/src/i18n/en';
 import { encodeBoard } from '@/src/game/codec';
@@ -22,6 +24,9 @@ import { getSave, useSaveStore } from './useSaveStore';
  */
 
 export type StuckReason = 'noMoves' | 'deadEnd';
+
+/** Why the level clock is paused. The clock runs only when no hold is set. */
+export type ClockHold = 'ui' | 'app' | 'focus' | 'done' | 'timeUp';
 
 export interface WinInfo {
   stars: 1 | 2 | 3;
@@ -62,7 +67,11 @@ export function useGame(level: number) {
   const pendingWin = useRef(false);
   const pourSeq = useRef(0);
   const analysis = useRef<Analysis | null>(null);
-  const clock = useRef({ base: 0, startedAt: 0 }); // set by start()
+  // Level clock: `base` ms already counted + time since `startedAt` while no hold is set.
+  const clock = useRef({ base: 0, startedAt: 0, holds: new Set<ClockHold>(['ui']) });
+  const limitRef = useRef(0);
+  const [remainingMs, setRemainingMs] = useState<number | null>(null);
+  const [timeUp, setTimeUp] = useState(false);
 
   const say = useCallback((message: string) => setToast((t) => ({ message, id: (t?.id ?? 0) + 1 })), []);
 
@@ -75,12 +84,59 @@ export function useGame(level: number) {
     setSelected(i);
   }, []);
 
-  const elapsed = () => clock.current.base + (Date.now() - clock.current.startedAt);
+  const running = () => clock.current.holds.size === 0;
+  const elapsed = () => clock.current.base + (running() ? Date.now() - clock.current.startedAt : 0);
+
+  const setHold = useCallback((hold: ClockHold, on: boolean) => {
+    const c = clock.current;
+    if (c.holds.has(hold) === on) return;
+    const wasRunning = c.holds.size === 0;
+    if (wasRunning) c.base += Date.now() - c.startedAt;
+    if (on) c.holds.add(hold);
+    else c.holds.delete(hold);
+    if (c.holds.size === 0) c.startedAt = Date.now();
+  }, []);
+
+  const resetClock = (elapsedMs: number) => {
+    const c = clock.current;
+    c.base = elapsedMs;
+    c.startedAt = Date.now();
+    c.holds.delete('done');
+    c.holds.delete('timeUp');
+  };
+
+  // App in the background pauses the clock.
+  useEffect(() => {
+    setHold('app', AppState.currentState !== 'active');
+    const sub = AppState.addEventListener('change', (st) => setHold('app', st !== 'active'));
+    return () => sub.remove();
+  }, [setHold]);
+
+  // Countdown tick. Re-renders only when the displayed second changes.
+  useEffect(() => {
+    if (!session) return;
+    const tick = () => {
+      if (limitRef.current <= 0) return;
+      const left = Math.max(0, limitRef.current - elapsed());
+      setRemainingMs(Math.ceil(left / 1000) * 1000);
+      if (left <= 0 && running() && !pendingWin.current) {
+        setHold('timeUp', true);
+        select(null);
+        haptics.invalid();
+        setTimeUp(true);
+      }
+    };
+    tick();
+    const iv = setInterval(tick, 250);
+    return () => clearInterval(iv);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session !== null, setHold]);
 
   const persistResume = useCallback(
     (s: SessionState) => {
       update((save) => ({ ...save, resume: sessionToResume(s, level, elapsed()) }));
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [update, level],
   );
 
@@ -115,7 +171,8 @@ export function useGame(level: number) {
     let cancelled = false;
     const start = (s: SessionState, elapsedMs: number) => {
       if (cancelled) return;
-      clock.current = { base: elapsedMs, startedAt: Date.now() };
+      limitRef.current = timeLimitMs(s.def.par, s.def.hard);
+      resetClock(elapsedMs);
       apply(s);
       select(null);
       persistResume(s);
@@ -153,7 +210,7 @@ export function useGame(level: number) {
   const tap = useCallback(
     (index: number) => {
       const s = sRef.current;
-      if (!s || pourRef.current || pendingWin.current) return;
+      if (!s || pourRef.current || pendingWin.current || clock.current.holds.has('timeUp')) return;
       const out = resolveTap(s, selRef.current, index);
       switch (out.kind) {
         case 'select':
@@ -179,6 +236,7 @@ export function useGame(level: number) {
           setStuck(null);
           haptics.pour();
           pendingWin.current = out.won;
+          if (out.won) setHold('done', true);
           const p: ActivePour = { id: ++pourSeq.current, move: out.move, prev };
           pourRef.current = p;
           setPour(p);
@@ -187,7 +245,7 @@ export function useGame(level: number) {
         }
       }
     },
-    [apply, select, persistResume],
+    [apply, select, persistResume, setHold],
   );
 
   const onPourDone = useCallback(
@@ -335,6 +393,8 @@ export function useGame(level: number) {
     if (!s || pourRef.current) return;
     const next = restartSession(s);
     pendingWin.current = false;
+    resetClock(0);
+    setTimeUp(false);
     setConfirmRestart(false);
     apply(next);
     select(null);
@@ -352,8 +412,26 @@ export function useGame(level: number) {
      
   }, [doRestart]);
 
+  /** Rewarded "+60 s" on the Time's up sheet. */
+  const addTime = useCallback(() => {
+    const c = clock.current;
+    // May go below zero: that is bonus time beyond the level's limit.
+    c.base = elapsed() - TIMER.extraSec * 1000;
+    if (running()) c.startedAt = Date.now();
+    setHold('timeUp', false);
+    setTimeUp(false);
+    const s = sRef.current;
+    if (s) persistResume(s);
+    // `elapsed`/`running` only read the clock ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [persistResume, setHold]);
+
   return {
     session,
+    remainingMs,
+    timeUp,
+    addTime,
+    setHold,
     selected,
     pour,
     shake,

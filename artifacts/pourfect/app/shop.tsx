@@ -15,6 +15,7 @@ import {
   type CosmeticItem,
   type TubeSkin,
 } from '@/src/config/cosmetics';
+import { BannerSlot } from '@/src/ads/BannerSlot';
 import { en } from '@/src/i18n/en';
 import { Backdrop } from '@/src/render/Backdrop';
 import { haptics } from '@/src/services/haptics';
@@ -129,6 +130,7 @@ export default function ShopScreen() {
     const res = await watchForReward({ kind: 'coins', amount: REWARDS.videoCoins });
     if (res === 'granted') say(en.home.gotCoins(REWARDS.videoCoins));
     else if (res === 'limit') say(en.home.limitReached);
+    else if (res === 'unavailable') say(en.ads.unavailable);
   };
 
   const claim = () => {
@@ -219,11 +221,11 @@ export default function ShopScreen() {
           numColumns={2}
           keyExtractor={(i) => i.id}
           columnWrapperStyle={styles.gridRow}
-          contentContainerStyle={[styles.grid, { paddingBottom: insets.bottom + space(4) }]}
+          contentContainerStyle={[styles.grid, { paddingBottom: space(3) }]}
           renderItem={renderCard}
         />
       ) : (
-        <ScrollView contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + space(4) }]}>
+        <ScrollView contentContainerStyle={[styles.list, { paddingBottom: space(3) }]}>
           {tab === 'boosters' &&
             BOOSTER_PACKS.map((p) => (
               <Panel key={p.id} padded={false}>
@@ -269,8 +271,11 @@ export default function ShopScreen() {
           )}
         </ScrollView>
       )}
+      <View style={{ paddingBottom: insets.bottom }}>
+        <BannerSlot />
+      </View>
 
-      <View style={[styles.toastSlot, { bottom: insets.bottom + space(3) }]} pointerEvents="none">
+      <View style={[styles.toastSlot, { bottom: insets.bottom + space(3) + 62 }]} pointerEvents="none">
         <Toast message={toast?.message ?? null} id={toast?.id ?? 0} />
       </View>
 

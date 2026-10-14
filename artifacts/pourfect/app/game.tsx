@@ -2,7 +2,11 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BannerSlot } from '@/src/ads/BannerSlot';
+import { noteLevelComplete, notePour, showInterstitialIfEligible, showRewardedAd } from '@/src/ads/service';
+import { AD_RULES } from '@/src/config/ads';
 import { BOOSTER_PACKS, REWARDS, type BoosterKind } from '@/src/config/cosmetics';
+import { TIMER, formatClock } from '@/src/config/timer';
 import { en } from '@/src/i18n/en';
 import { isEndless } from '@/src/data/levels';
 import { Backdrop } from '@/src/render/Backdrop';
@@ -14,6 +18,7 @@ import { buyBoosterPack } from '@/src/state/shop';
 import { useGame } from '@/src/state/useGame';
 import { usePrefs } from '@/src/state/usePrefs';
 import { getSave, useSaveStore } from '@/src/state/useSaveStore';
+import { Ionicons } from '@expo/vector-icons';
 import { BoosterButton, Button, IconButton, type IconName } from '@/src/ui/Button';
 import { Coin } from '@/src/ui/Coin';
 import { CoinPill, Stars, Toast } from '@/src/ui/bits';
@@ -42,6 +47,8 @@ function GameScreen({ level }: { level: number }) {
   const [paused, setPaused] = useState(false);
   const [showWin, setShowWin] = useState(false);
   const [doubled, setDoubled] = useState(false);
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; id: number } | null>(null);
   const say = (message: string) => setToast((t) => ({ message, id: (t?.id ?? 0) + 1 }));
   const update = useSaveStore((s) => s.update);
@@ -53,18 +60,30 @@ function GameScreen({ level }: { level: number }) {
   // Let the confetti play before the win card comes up.
   useEffect(() => {
     if (!win) return;
+    noteLevelComplete();
     const t = setTimeout(() => setShowWin(true), 900);
     return () => clearTimeout(t);
   }, [win]);
 
-  const anySheet = paused || showWin || game.stuck !== null || game.confirmRestart || game.need !== null;
+  const anySheet = paused || leaveOpen || showWin || game.timeUp || game.stuck !== null || game.confirmRestart || game.need !== null;
+  const { setHold } = game;
+  // The level clock stops while any sheet is open or the screen is covered (settings, shop).
+  useEffect(() => setHold('ui', anySheet), [anySheet, setHold]);
+  useEffect(() => notePour(game.pour !== null), [game.pour]);
+  useEffect(() => () => notePour(false), []);
   useFocusEffect(
     useCallback(() => {
-      return onHardwareBack(() => {
-        if (!anySheet) setPaused(true);
+      setHold('focus', false);
+      // Android back in a level asks: continue, restart or exit. Open sheets handle back themselves.
+      const off = onHardwareBack(() => {
+        if (!anySheet) setLeaveOpen(true);
         return true;
       });
-    }, [anySheet]),
+      return () => {
+        off();
+        setHold('focus', true);
+      };
+    }, [anySheet, setHold]),
   );
 
   const onBoardLayout = (e: LayoutChangeEvent) => {
@@ -73,7 +92,8 @@ function GameScreen({ level }: { level: number }) {
   };
 
   const goLevel = (n: number) => router.replace({ pathname: '/game', params: { level: String(n) } });
-  const busy = game.pour !== null || win !== null;
+  const busy = game.pour !== null || win !== null || game.timeUp;
+  const showBanner = level > AD_RULES.banner.hiddenThroughLevel;
   const need = game.need;
   const needPack = need ? BOOSTER_PACKS.find((p) => p.booster === need) : undefined;
 
@@ -95,6 +115,21 @@ function GameScreen({ level }: { level: number }) {
     const res = await watchForReward({ kind: 'booster', booster: kind, amount: REWARDS.videoBooster });
     if (res === 'granted') say(en.game.gotBooster(BOOSTER_NAME[kind]));
     else if (res === 'limit') say(en.home.limitReached);
+    else if (res === 'unavailable') say(en.ads.unavailable);
+  };
+  const watchTime = async () => {
+    const res = await showRewardedAd();
+    if (res === 'rewarded') {
+      game.addTime();
+      haptics.complete();
+      say(en.game.gotTime(TIMER.extraSec));
+    } else if (res === 'unavailable') say(en.ads.unavailable);
+  };
+  const next = async () => {
+    if (leaving) return;
+    setLeaving(true);
+    await showInterstitialIfEligible(level);
+    goLevel(level + 1);
   };
   const watchDouble = async () => {
     if (!win || doubled) return;
@@ -103,6 +138,7 @@ function GameScreen({ level }: { level: number }) {
       setDoubled(true);
       haptics.win();
     } else if (res === 'limit') say(en.home.limitReached);
+    else if (res === 'unavailable') say(en.ads.unavailable);
   };
 
   return (
@@ -130,6 +166,17 @@ function GameScreen({ level }: { level: number }) {
         <IconButton icon="refresh" label={en.game.restart} onPress={game.restart} disabled={!session || busy} testID="tool-restart" />
       </View>
       <View style={styles.coinRow}>
+        {game.remainingMs !== null && (
+          <View
+            style={[styles.timer, game.remainingMs <= TIMER.warnSec * 1000 && styles.timerWarn]}
+            accessible
+            accessibilityLabel={en.game.timeLeft(formatClock(game.remainingMs))}
+            testID="game-timer"
+          >
+            <Ionicons name="time" size={20} color={game.remainingMs <= TIMER.warnSec * 1000 ? '#FFFFFF' : colors.goldHi} />
+            <Text style={styles.timerText}>{formatClock(game.remainingMs)}</Text>
+          </View>
+        )}
         <CoinPill amount={coins} onPlus={() => router.push('/shop')} testID="game-coins" />
       </View>
 
@@ -163,7 +210,7 @@ function GameScreen({ level }: { level: number }) {
       )}
 
       {/* Boosters */}
-      <View style={[styles.toolbar, { paddingBottom: insets.bottom + space(1.5) }]} pointerEvents="box-none">
+      <View style={[styles.toolbar, { paddingBottom: showBanner ? space(2) : insets.bottom + space(1.5) }]} pointerEvents="box-none">
         <View style={styles.toastSlot} pointerEvents="none">
           <Toast message={toast?.message ?? game.toast?.message ?? null} id={(toast?.id ?? 0) * 1000 + (game.toast?.id ?? 0)} />
         </View>
@@ -188,6 +235,11 @@ function GameScreen({ level }: { level: number }) {
           />
         </View>
       </View>
+      {showBanner && (
+        <View style={{ paddingBottom: insets.bottom }}>
+          <BannerSlot />
+        </View>
+      )}
 
       {/* Get more boosters */}
       <Sheet visible={need !== null} title={need ? en.game.getMore(BOOSTER_NAME[need]) : undefined} ribbon="sapphire" onDismiss={game.clearNeed} testID="sheet-booster">
@@ -229,6 +281,29 @@ function GameScreen({ level }: { level: number }) {
             router.push('/settings');
           }}
         />
+      </Sheet>
+
+      {/* Android back: leave level? */}
+      <Sheet visible={leaveOpen} title={en.game.leaveTitle} subtitle={en.game.leaveBody} onDismiss={() => setLeaveOpen(false)} testID="sheet-leave">
+        <Button label={en.game.continueGame} icon="play" size="lg" onPress={() => setLeaveOpen(false)} testID="leave-continue" />
+        <Button
+          label={en.pause.restart}
+          icon="refresh"
+          variant="plum"
+          onPress={() => {
+            setLeaveOpen(false);
+            game.doRestart();
+          }}
+          testID="leave-restart"
+        />
+        <Button label={en.game.exitGame} icon="exit-outline" variant="ruby" onPress={() => router.dismissTo('/')} testID="leave-exit" />
+      </Sheet>
+
+      {/* Time's up */}
+      <Sheet visible={game.timeUp && !showWin} title={en.game.timeUpTitle} subtitle={en.game.timeUpBody} testID="sheet-timeup">
+        <Button label={en.game.moreTime(TIMER.extraSec)} video variant="emerald" size="lg" onPress={() => void watchTime()} testID="timeup-more" />
+        <Button label={en.pause.restart} icon="refresh" onPress={game.doRestart} testID="timeup-restart" />
+        <Button label={en.game.exitGame} icon="exit-outline" variant="plum" size="sm" onPress={() => router.dismissTo('/')} testID="timeup-exit" />
       </Sheet>
 
       {/* Restart confirmation */}
@@ -292,7 +367,7 @@ function GameScreen({ level }: { level: number }) {
             {win.coins > 0 && !doubled && (
               <Button label={en.win.claimDouble} video variant="emerald" onPress={() => void watchDouble()} testID="win-double" />
             )}
-            <Button label={en.win.next} icon="arrow-forward" size="lg" onPress={() => goLevel(level + 1)} testID="win-next" />
+            <Button label={en.win.next} icon="arrow-forward" size="lg" onPress={() => void next()} disabled={leaving} testID="win-next" />
             <View style={styles.winRow}>
               <IconButton icon="refresh" label={en.win.replay} onPress={() => goLevel(level)} />
               <IconButton icon="home" label={en.pause.home} onPress={() => router.dismissTo('/')} />
@@ -331,7 +406,21 @@ const styles = StyleSheet.create({
   tagHard: { backgroundColor: colors.ruby },
   tagEndless: { backgroundColor: colors.sapphireDeep },
   tagText: { fontFamily: fonts.display, fontSize: 12, color: '#FFFFFF', letterSpacing: 0.8 },
-  coinRow: { alignItems: 'center', marginTop: space(1) },
+  coinRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space(1.5), marginTop: space(1) },
+  timer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minWidth: 92,
+    paddingHorizontal: space(1.5),
+    height: 38,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(23,12,48,0.88)',
+    borderWidth: 2,
+    borderColor: colors.gold,
+  },
+  timerWarn: { backgroundColor: colors.ruby, borderColor: '#FFFFFF' },
+  timerText: { fontFamily: fonts.display, fontSize: 20, color: colors.text, fontVariant: ['tabular-nums'], letterSpacing: 0.5 },
   boardArea: { flex: 1 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space(2) },
   loadingText: { fontFamily: fonts.medium, fontSize: 16, color: colors.textMuted },

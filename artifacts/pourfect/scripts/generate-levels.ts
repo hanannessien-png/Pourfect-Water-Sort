@@ -9,10 +9,13 @@ import { FIXED_LEVEL_COUNT, MAX_ATTEMPTS, SOLVER_LIMITS, levelSpec } from '../sr
 import { encodeBoard } from '../src/game/codec';
 import { generateBoard, OFFLINE_PASSES } from '../src/game/generator';
 import { hashString } from '../src/game/prng';
+import { hasTrap } from '../src/game/traps';
 import type { FixedLevelFile, FixedLevelRow } from '../src/data/levelFile';
 
 const out = resolve(__dirname, '../src/data/levels.fixed.json');
 const rows: FixedLevelRow[] = [];
+/** The first levels teach the rules, so they must not contain dead-end traps. */
+const TRAP_FREE_THROUGH = 2;
 const started = Date.now();
 let relaxed = 0;
 
@@ -22,12 +25,13 @@ for (let n = 1; n <= FIXED_LEVEL_COUNT; n++) {
   let result = null;
   // Re-seed on the rare failure so every level is always produced.
   for (let salt = 0; !result; salt++) {
-    if (salt > 20) throw new Error(`Level ${n}: could not generate a verified board`);
+    if (salt > 200) throw new Error(`Level ${n}: could not generate a verified board`);
     result = generateBoard(spec, hashString(`level:${n}:${salt}`), {
       maxNodes: SOLVER_LIMITS.offline,
       maxAttempts: MAX_ATTEMPTS,
       passes: OFFLINE_PASSES,
     });
+    if (result && n <= TRAP_FREE_THROUGH && hasTrap(result.board)) result = null;
   }
   if (result.relaxed) relaxed++;
   rows.push({

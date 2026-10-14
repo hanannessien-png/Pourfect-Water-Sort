@@ -27,7 +27,7 @@ Android-only, fully offline water-sort puzzle game (Expo + React Native + Skia),
 
 - Static `app.json` only (no `app.config.*`); no EAS commands run from Replit.
 - Fixed levels are generated offline by script and re-verified; never hand-edit the JSON.
-- Web preview is a dev aid only: `src/boot.web.ts` loads CanvasKit from a CDN; Android stays offline.
+- Web preview is a dev aid only: `src/boot.web.ts` loads CanvasKit from a CDN; on Android the only network traffic is AdMob.
 
 ## Product
 
@@ -37,7 +37,7 @@ Android-only, fully offline water-sort puzzle game (Expo + React Native + Skia),
 
 - Owner writes in Egyptian Arabic; reply in Egyptian Arabic. Game UI is English only.
 - Stop for owner review after Phase 3, Phase 5 and Phase 6; Phases 7–8 run straight through.
-- No ad IDs anywhere (not even Google test IDs) until the owner supplies them at the end.
+- Real AdMob IDs (owner-supplied) live in `src/config/ads.ts` and `app.json`; debug builds use Google test ads, Expo Go/web use mock ads.
 
 ## Gotchas
 

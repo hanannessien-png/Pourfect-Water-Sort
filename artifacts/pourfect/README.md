@@ -22,7 +22,9 @@ All commands run from `artifacts/pourfect`:
 
 ## Where to change things
 - **Package name / app name / version:** `app.json` (`expo.android.package`, `expo.name`, `expo.version`, `expo.android.versionCode`) and `src/config/brand.ts`. The package name cannot change after the first Play upload.
-- **Ad IDs:** none are in the project yet, by owner decision. Phase 7 adds `src/config/ads.ts` with empty fields marked `// PASTE YOUR ID HERE`.
+- **Ad IDs:** `src/config/ads.ts` (unit IDs + every pacing rule) and the `react-native-google-mobile-ads` entry in `app.json` (`androidAppId`). Keep the app ID the same in both places.
+- **Timer:** `src/config/timer.ts` (time per par move, min/max, +60 s video).
+- **Difficulty ramp:** `src/config/difficulty.ts`, then `pnpm run levels:generate` and `pnpm run levels:validate`.
 - **Difficulty curve:** `src/config/difficulty.ts`, then `pnpm run levels:generate` and `pnpm run levels:validate`.
 - **Starting tokens / rewards:** `src/config/economy.ts`.
 - **Text:** `src/i18n/en.ts`.
@@ -53,8 +55,12 @@ Decisions taken without asking, as the spec requires. Where `BUILD_BRIEF.md` dif
 10. Shop currency is coins only (wins, rewarded videos, daily gift); no real-money purchases. Prices live in `src/config/cosmetics.ts`; item ids are stored in saves and must never be renamed.
 11. Rewarded videos are capped at 20 per day across all placements; a mock ad screen stands in until real ad IDs are added.
 12. Shop previews are drawn with plain views (not Skia) so a screen full of cards doesn't create dozens of GPU contexts.
+13. **Ads (AdMob, owner's IDs).** Debug builds request Google's test ads; release builds (EAS) use the live units, so the owner never taps their own live ads. Expo Go and the web preview have no AdMob native module, so they show labelled "TEST AD" screens and a "TEST BANNER" strip instead. Consent (UMP) runs before the SDK starts; content rating PG. Pacing: interstitial on Next from level 5, every 2nd level, ≥ 90 s apart, skipped for 3 min after a rewarded video; app-open after ≥ 60 s in the background, not in the first session or before level 4, ≥ 4 min after any other full-screen ad, never over a sheet or a pour. Banners have a reserved height; hidden on game levels 1–2. Rules are unit-tested in `src/ads/__tests__/policy.test.ts`.
+14. **Countdown timer (owner request; overrides the spec's "no timers").** Limit = 25 s + 4.5 s per par move, rounded to 5 s, between 45 s and 7 min; Hard levels ×1.25. The clock pauses whenever a sheet is open, the screen is covered or the app is in the background, and is saved with the level. At 0: watch a video for +60 s, restart, or exit.
+15. **Steeper difficulty (owner: "too easy").** Tutorial is now levels 1–3; 5–7 colours by level 4–12, 7–10 by 40, 9–12 with hidden layers from 50, 11–14 colours with capacity 5–6 after 100; score bands raised by ~8–10 points. Levels 1–2 are checked to have no dead-end traps.
+16. **Android back in a level** opens "Leave level?" (Continue / Restart / Exit). Predictive back is disabled in `app.json` so the back press always reaches the game.
 
 ## Web preview (development only)
 - Skia on the web needs CanvasKit WebAssembly. `src/boot.web.ts` loads it from the jsDelivr CDN, pinned to the exact `canvaskit-wasm` version Skia uses, then starts the router. If the browser has no WebGL, it switches CanvasKit to CPU rendering.
-- This file is web-only (`.web.ts`). The Android app uses native Skia and makes **no** network calls (ads come in Phase 7).
+- This file is web-only (`.web.ts`). The Android app uses native Skia; its only network traffic is AdMob.
 - Android-only APIs (back button, haptics) are no-ops on web.

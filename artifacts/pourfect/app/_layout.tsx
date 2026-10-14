@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -14,8 +14,9 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { RewardedHost } from '@/src/ads/rewarded';
-import { useSaveStore } from '@/src/state/useSaveStore';
+import { MockAdHost } from '@/src/ads/mock';
+import { initAds, isFullscreenAdShowing, maybeShowAppOpen } from '@/src/ads/service';
+import { getSave, useSaveStore } from '@/src/state/useSaveStore';
 import { colors } from '@/src/ui/theme';
 
 // Keep the splash up until fonts and the save file are ready.
@@ -40,10 +41,24 @@ export default function RootLayout() {
     });
   }, [hydrate]);
 
-  // Write pending changes as soon as the app leaves the foreground.
+  // Ads start after the save is loaded (consent → SDK init → preload). Never blocks the game.
+  useEffect(() => {
+    if (ready) void initAds();
+  }, [ready]);
+
+  // Write pending changes as soon as the app leaves the foreground; app-open ad on return.
+  const backgroundAt = useRef(0);
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
-      if (state !== 'active') void flush();
+      if (state !== 'active') {
+        void flush();
+        // Our own full-screen ads also background the app on Android; don't count those.
+        if (backgroundAt.current === 0 && !isFullscreenAdShowing()) backgroundAt.current = Date.now();
+        return;
+      }
+      const since = backgroundAt.current;
+      backgroundAt.current = 0;
+      if (since > 0) void maybeShowAppOpen(Date.now() - since, getSave().progress.current);
     });
     return () => sub.remove();
   }, [flush]);
@@ -73,7 +88,7 @@ export default function RootLayout() {
             <Stack.Screen name="settings" />
             <Stack.Screen name="shop" />
           </Stack>
-          <RewardedHost />
+          <MockAdHost />
         </GestureHandlerRootView>
       </ErrorBoundary>
     </SafeAreaProvider>

@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, router } from 'expo-router';
 import Animated, { FadeInDown, FadeInUp, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BannerSlot } from '@/src/ads/BannerSlot';
 import { REWARDS } from '@/src/config/cosmetics';
 import { en } from '@/src/i18n/en';
 import { isEndless } from '@/src/data/levels';
@@ -19,13 +20,15 @@ import { Coin } from '@/src/ui/Coin';
 import { CoinPill, Toast } from '@/src/ui/bits';
 import { Logo } from '@/src/ui/Logo';
 import { Sheet } from '@/src/ui/Sheet';
-import { colors, fonts, space, textOutline } from '@/src/ui/theme';
+import { colors, fonts, radius, space, textOutline } from '@/src/ui/theme';
 
-function RailButton({ icon, label, onPress, badge, variant, testID }: { icon: IconName; label: string; onPress: () => void; badge?: string | null; variant?: 'plum' | 'emerald' | 'ruby' | 'sapphire' | 'gold'; testID?: string }) {
+function DockButton({ icon, label, onPress, badge, variant, testID }: { icon: IconName; label: string; onPress: () => void; badge?: string | null; variant?: 'plum' | 'emerald' | 'ruby' | 'sapphire' | 'gold'; testID?: string }) {
   return (
-    <View style={styles.rail}>
-      <IconButton icon={icon} label={label} onPress={onPress} size={58} badge={badge} variant={variant} testID={testID} />
-      <Text style={[styles.railLabel, textOutline]}>{label}</Text>
+    <View style={styles.dockItem}>
+      <IconButton icon={icon} label={label} onPress={onPress} size={56} badge={badge} variant={variant} testID={testID} />
+      <Text style={[styles.dockLabel, textOutline]} numberOfLines={1}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -85,10 +88,11 @@ export default function HomeScreen() {
       haptics.win();
       say(en.home.gotCoins(REWARDS.videoCoins));
     } else if (res === 'limit') say(en.home.limitReached);
+    else if (res === 'unavailable') say(en.ads.unavailable);
   };
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top + space(1), paddingBottom: insets.bottom + space(2) }]}>
+    <View style={[styles.root, { paddingTop: insets.top + space(1), paddingBottom: insets.bottom + space(1) }]}>
       <Backdrop />
       <View style={styles.topBar}>
         <CoinPill amount={coins} onPlus={() => router.push('/shop')} testID="home-coins" />
@@ -99,19 +103,9 @@ export default function HomeScreen() {
         <Logo width={330} />
       </Animated.View>
 
-      <View style={styles.middle}>
-        <View style={styles.railCol}>
-          <RailButton icon="storefront" label={en.home.shop} variant="ruby" onPress={() => router.push('/shop')} testID="home-shop" />
-          <RailButton icon="gift" label={en.home.daily} variant="emerald" badge={giftReady ? '!' : null} onPress={() => setGiftOpen(true)} testID="home-gift" />
-        </View>
-        <Animated.View entering={FadeInUp.delay(150).duration(500)} style={styles.hero}>
-          <HeroTubes shades={prefs.shades} skin={prefs.skin} colorBlind={prefs.colorBlind} lowGfx={prefs.lowGfx} tubeW={56} count={3} />
-        </Animated.View>
-        <View style={styles.railCol}>
-          <RailButton icon="grid" label={en.home.levels} variant="sapphire" onPress={() => router.push('/levels')} testID="home-levels" />
-          <RailButton icon="videocam" label={en.home.freeCoins} variant="gold" onPress={() => setFreeOpen(true)} testID="home-free" />
-        </View>
-      </View>
+      <Animated.View entering={FadeInUp.delay(150).duration(500)} style={styles.hero}>
+        <HeroTubes shades={prefs.shades} skin={prefs.skin} colorBlind={prefs.colorBlind} lowGfx={prefs.lowGfx} tubeW={64} count={3} />
+      </Animated.View>
 
       <View style={styles.actions}>
         <Toast message={toast?.message ?? null} id={toast?.id ?? 0} />
@@ -124,7 +118,16 @@ export default function HomeScreen() {
             testID="home-play"
           />
         </Animated.View>
-        <Text style={styles.tagline}>{en.home.tagline}</Text>
+      </View>
+
+      <Animated.View entering={FadeInUp.delay(250).duration(500)} style={styles.dock}>
+        <DockButton icon="storefront" label={en.home.shop} variant="ruby" onPress={() => router.push('/shop')} testID="home-shop" />
+        <DockButton icon="grid" label={en.home.levels} variant="sapphire" onPress={() => router.push('/levels')} testID="home-levels" />
+        <DockButton icon="gift" label={en.home.daily} variant="emerald" badge={giftReady ? '!' : null} onPress={() => setGiftOpen(true)} testID="home-gift" />
+        <DockButton icon="videocam" label={en.home.freeCoins} variant="gold" onPress={() => setFreeOpen(true)} testID="home-free" />
+      </Animated.View>
+      <View style={styles.bannerWrap}>
+        <BannerSlot />
       </View>
 
       <Sheet visible={giftOpen} title={en.home.dailyTitle} ribbon="emerald" onDismiss={() => setGiftOpen(false)} testID="sheet-gift">
@@ -164,13 +167,23 @@ const styles = StyleSheet.create({
   root: { flex: 1, paddingHorizontal: space(2) },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   logo: { alignItems: 'center', marginTop: space(3) },
-  middle: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  railCol: { gap: space(3), alignItems: 'center', width: 76 },
-  rail: { alignItems: 'center' },
-  railLabel: { fontFamily: fonts.display, fontSize: 15, color: colors.text, marginTop: 4, letterSpacing: 0.4 },
   hero: { alignItems: 'center', justifyContent: 'center', flex: 1 },
-  actions: { alignItems: 'stretch', paddingHorizontal: space(2), paddingBottom: space(1), gap: space(1.5) },
-  tagline: { fontFamily: fonts.medium, fontSize: 15, color: colors.textMuted, textAlign: 'center' },
+  actions: { alignItems: 'stretch', paddingHorizontal: space(2), gap: space(1.5) },
+  dock: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'flex-start',
+    marginTop: space(2.5),
+    paddingTop: space(1.5),
+    paddingBottom: space(1),
+    borderRadius: radius.lg,
+    backgroundColor: 'rgba(23,12,48,0.72)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(242,193,78,0.55)',
+  },
+  dockItem: { alignItems: 'center', width: 76 },
+  dockLabel: { fontFamily: fonts.display, fontSize: 14, color: colors.text, marginTop: 4, letterSpacing: 0.4 },
+  bannerWrap: { marginTop: space(2), marginHorizontal: -space(2) },
   rewardRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space(1.5) },
   rewardAmount: { fontFamily: fonts.display, fontSize: 44, color: colors.goldHi },
   sheetBody: { fontFamily: fonts.medium, fontSize: 16, lineHeight: 22, color: colors.textMuted, textAlign: 'center' },

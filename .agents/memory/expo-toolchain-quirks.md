@@ -19,3 +19,8 @@ description: Non-obvious build/lint/test environment fixes for the Expo SDK 57 g
 
 - **Never build Skia textures/offscreen surfaces per render.** `useTexture` with an inline size object made a new GPU surface on every render; it leaked WebGL contexts and white-screened the game after a few moves. Build sprite sheets once (CPU raster surface, module-level cache).
   **How to apply:** for lists of previews (shop cards) draw with plain Views, not one Skia Canvas per item — web caps live WebGL contexts at ~16.
+
+- **Platform files need the same extension as the default file.** Metro tries `.android/.native/plain` per extension in order (ts before tsx), so `admob.ts` beat `admob.native.tsx` and the native AdMob code silently never bundled. Keep pairs as `x.tsx` + `x.native.tsx`.
+  **How to apply:** after adding a `.native`/`.web` file, grep the Android bundle for its path.
+
+- **AdMob native module (react-native-google-mobile-ads) uses `TurboModuleRegistry.getEnforcing` at import** → importing it in Expo Go crashes. It is only `require`d lazily inside the native provider, never when `Constants.executionEnvironment === StoreClient` (Expo Go → mock ads). The plugin's "No iosAppId" warnings at `expo start` are harmless (Android only).

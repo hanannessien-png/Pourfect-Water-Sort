@@ -31,14 +31,21 @@ Spec: `attached_assets/Water_Sort_Puzzle_—_Replit_Master_Prompt_*.pdf`, overri
 - Out of a booster → "Get more" sheet (buy pack or watch video). Win → "Claim x2" video.
 - Rewarded videos use a mock "TEST AD" screen until the owner supplies ad IDs. Save format v2 (v1 saves migrate).
 
+### Owner feedback round — ads, home dock, harder levels, timer, back popup
+- AdMob wired with the owner's IDs (banner, interstitial, app-open, rewarded) + UMP consent; test ads in debug builds, mock ads in Expo Go/web.
+- Home: the 4 side buttons moved into one dock under the LEVEL button; bigger hero tubes; banner at the bottom. Banners also on Levels, Shop and Game (from level 3).
+- Levels regenerated with a steeper ramp (see README decision 15).
+- Countdown timer with a "Time's up" sheet (+60 s video / Restart / Exit).
+- Android back in a level → "Leave level?" sheet (Continue / Restart / Exit).
+
 ## Checks (end of Phase 3)
 - `pnpm run typecheck` — 0 errors
 - `pnpm run lint` — 0 problems
-- `pnpm test` — 9 suites, 63 tests pass (after the redesign round)
+- `pnpm test` — 11 suites, 80 tests pass (after the ads/timer round)
 - `pnpm run levels:validate` — 300/300 valid and solver-verified
 - `pnpm dlx expo-doctor` — 21/21
 - Android bundle builds; web preview renders Home, Game, Levels, Settings.
-- No network calls in app code (the only URL is the web-preview-only CanvasKit CDN, see README).
+- Network: AdMob only on Android (plus the web-preview-only CanvasKit CDN, see README).
 
 ## Next — Phase 4 (after owner review)
 Persistence polish, economy, win/stuck flows in full, Levels screen polish, tutorial hand, daily reward, spin, daily challenge, quests, achievements, chests, clock safety.

@@ -33,7 +33,8 @@
         "android.permission.CAMERA",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION"
-      ]
+      ],
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -55,7 +56,14 @@
         }
       ],
       "expo-build-properties",
-      "expo-asset"
+      "expo-asset",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-6225158226956884~8782715365",
+          "delayAppMeasurementInit": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
