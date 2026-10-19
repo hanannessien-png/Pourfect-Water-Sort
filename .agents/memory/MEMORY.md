@@ -1,2 +1,3 @@
 - [Expo toolchain quirks](expo-toolchain-quirks.md) — worklets/@babel/generator, react-hooks zod override, TS6 types, no jest-expo, Skia web boot, platform-file extensions, AdMob lazy require.
 - [Level generation](level-generation.md) — owner wants a steep ramp; tutorial levels must be trap-free; regen takes ~4 min.
+- [Store listing screenshots](store-assets.md) — recipe to recapture/compose Play screenshots (seed save before boot, hide banner, solver-driven taps).

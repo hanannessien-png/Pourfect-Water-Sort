@@ -1,0 +1,114 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "QyEwwW1nOt5D_xrTDL-dN"
+uri = "file://artifacts/pourfect/store-listing/app-icon-512.png"
+type = "image"
+title = "App icon 512×512"
+description = "Google Play app icon (32-bit PNG)."
+logical_id = "26a155b8-4056-45cb-8227-82be61939080"
+content_hash = "sha256:0aa133a416a1a1bbccdcef989b53f2a3c9c41233713a2628071c0ee9f2289d67"
+size = 456661
+mtime_ms = 1792447593176
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:31c01528-15bd-4d21-b806-e71358ed5c63/26a155b8-4056-45cb-8227-82be61939080/793c625e-65d5-4c3e-970c-86ab9a201323"
+storage_version_token = "1792447604224321"
+content_type = "image/png"
+
+[[outputs]]
+id = "pKEyWiXA62vys7jzxF8OM"
+uri = "file://artifacts/pourfect/store-listing/feature-graphic-1024x500.jpg"
+type = "image"
+title = "Feature graphic 1024×500"
+description = "Required Google Play feature graphic."
+logical_id = "513a1b30-9062-4c45-9d28-f70a5a815d77"
+content_hash = "sha256:3db02805868d62e6591c1b3f6a4329c3bd9903295676c68ae16be778ba6afdba"
+size = 158283
+mtime_ms = 1792447592662
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:31c01528-15bd-4d21-b806-e71358ed5c63/513a1b30-9062-4c45-9d28-f70a5a815d77/d6a4cb99-dca1-4ad4-8e54-928736ef6b85"
+storage_version_token = "1792447604827439"
+content_type = "image/jpeg"
+
+[[outputs]]
+id = "WJF5a0nWrgI9IntBKCNqY"
+uri = "file://artifacts/pourfect/store-listing/screenshots/01-sort-the-colors.jpg"
+type = "image"
+title = "Screenshot 1 (1080×1920)"
+description = "Phone screenshot for Google Play."
+logical_id = "c69600cd-72a1-4aa2-a62e-19d688396ccf"
+content_hash = "sha256:06475fd4e58a115c67cfd109471e80b87f268916601fbf9bf12a5b4e6358607b"
+size = 431120
+mtime_ms = 1792447590755
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:31c01528-15bd-4d21-b806-e71358ed5c63/c69600cd-72a1-4aa2-a62e-19d688396ccf/31625bd5-bbf0-4449-96c7-b6120549b76d"
+storage_version_token = "1792447605399771"
+content_type = "image/jpeg"
+
+[[outputs]]
+id = "mm-hvNgf6QKmarCrXQCo9"
+uri = "file://artifacts/pourfect/store-listing/screenshots/02-satisfying-pours.jpg"
+type = "image"
+title = "Screenshot 2 (1080×1920)"
+description = "Phone screenshot for Google Play."
+logical_id = "fd337e97-a6f9-4f50-b992-c1a95c6165df"
+content_hash = "sha256:b35f94a45b68554fb004b3a59205febbf83695d9fb8c3b9db85ee7b3c8e0e09b"
+size = 424308
+mtime_ms = 1792447591090
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:31c01528-15bd-4d21-b806-e71358ed5c63/fd337e97-a6f9-4f50-b992-c1a95c6165df/f3225273-2ace-4b66-ad4a-ef7a253003a0"
+storage_version_token = "1792447606013398"
+content_type = "image/jpeg"
+
+[[outputs]]
+id = "4gNuAmqV6Gvc8fjglIdna"
+uri = "file://artifacts/pourfect/store-listing/screenshots/03-mystery-layers.jpg"
+type = "image"
+title = "Screenshot 3 (1080×1920)"
+description = "Phone screenshot for Google Play."
+logical_id = "ed885815-d6f7-4123-82ee-e890df516328"
+content_hash = "sha256:9ac2abc8b3626691d3cd0c1bb2320a4a1883c9acb6734f2bb2b8dcf62185fc3e"
+size = 429002
+mtime_ms = 1792447591412
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:31c01528-15bd-4d21-b806-e71358ed5c63/ed885815-d6f7-4123-82ee-e890df516328/da324ed4-7311-4edf-8c40-7e9435ee97e9"
+storage_version_token = "1792447606667191"
+content_type = "image/jpeg"
+
+[[outputs]]
+id = "wsNgVCKUqWHemniUabuTO"
+uri = "file://artifacts/pourfect/store-listing/screenshots/04-stars-and-coins.jpg"
+type = "image"
+title = "Screenshot 4 (1080×1920)"
+description = "Phone screenshot for Google Play."
+logical_id = "257eedef-50e6-42b3-b96e-15039b7a93f3"
+content_hash = "sha256:3c6c0c304dda658e3f0a816ebd8eefab8524c613fabbbe779731d71547821003"
+size = 371883
+mtime_ms = 1792447591727
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:31c01528-15bd-4d21-b806-e71358ed5c63/257eedef-50e6-42b3-b96e-15039b7a93f3/9f9eff60-f4f3-44ab-9356-888405f94a81"
+storage_version_token = "1792447607226870"
+content_type = "image/jpeg"
+
+[[outputs]]
+id = "zKt4Q0eCshYgKXtvUdnCy"
+uri = "file://artifacts/pourfect/store-listing/screenshots/05-hundreds-of-levels.jpg"
+type = "image"
+title = "Screenshot 5 (1080×1920)"
+description = "Phone screenshot for Google Play."
+logical_id = "19349d19-c27a-4b41-a281-0cc7046ee7ee"
+content_hash = "sha256:acf1420a1b37037ac0ad03d9652dddf8eaad8d55eedc210f58e0f780e7e05bb5"
+size = 470585
+mtime_ms = 1792447592048
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:31c01528-15bd-4d21-b806-e71358ed5c63/19349d19-c27a-4b41-a281-0cc7046ee7ee/1e6c7298-345b-4f8a-b491-6b32fe3d7bea"
+storage_version_token = "1792447607758408"
+content_type = "image/jpeg"
+
+[[outputs]]
+id = "X7jx2RQ2VG7Yt3pEIvkS3"
+uri = "file://artifacts/pourfect/store-listing/screenshots/06-skins-and-scenes.jpg"
+type = "image"
+title = "Screenshot 6 (1080×1920)"
+description = "Phone screenshot for Google Play."
+logical_id = "9693d9e1-38f1-43c5-af84-15cc3affc783"
+content_hash = "sha256:8cb79c094d91b42aedc9d26d33105788a8d6d9e12be23ede13aa06454a7c2666"
+size = 413138
+mtime_ms = 1792447592393
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:31c01528-15bd-4d21-b806-e71358ed5c63/9693d9e1-38f1-43c5-af84-15cc3affc783/b1317c33-b0eb-4e53-a15c-8d306482d867"
+storage_version_token = "1792447608405177"
+content_type = "image/jpeg"
