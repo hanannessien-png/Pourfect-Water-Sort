@@ -112,3 +112,17 @@ mtime_ms = 1792447592393
 storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:31c01528-15bd-4d21-b806-e71358ed5c63/9693d9e1-38f1-43c5-af84-15cc3affc783/b1317c33-b0eb-4e53-a15c-8d306482d867"
 storage_version_token = "1792447608405177"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "hdQtR__nUDMRcB4XYb9Dh"
+uri = "file://artifacts/api-server/src/pages/privacy.html"
+type = "html"
+title = "Pourfect — Privacy Policy"
+description = "صفحة الخصوصية بالإنجليزي، جاهزة للتحميل أو الرفع على موقع الشركة."
+logical_id = "933ef4eb-e5f9-4ce1-b66f-2a247097eaaa"
+content_hash = "sha256:f0a5a4ee0b70364e7952659d8ae7dddadb41fac6214e81016f35c54e1d987b87"
+size = 3891
+mtime_ms = 1792506135820
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:31c01528-15bd-4d21-b806-e71358ed5c63/933ef4eb-e5f9-4ce1-b66f-2a247097eaaa/32797ff9-fc9b-4282-b7ea-6b66deda25ff"
+storage_version_token = "1792506167407629"
+content_type = "text/html"
