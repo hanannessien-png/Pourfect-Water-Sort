@@ -1,0 +1,84 @@
+# Repository root. See docs/CODEMAGIC.md before selecting the signed workflow.
+workflows:
+  android-unsigned: &android_workflow
+    name: Pourfect Android - unsigned build check
+    instance_type: linux_x2
+    max_build_duration: 120
+    environment:
+      node: 22.16.0
+      java: 17
+      vars:
+        CI: "true"
+        REQUIRE_RELEASE_SIGNING: "false"
+    scripts:
+      - name: Install locked workspace dependencies (including Expo devDependencies)
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          npm install --global pnpm@10.26.1
+          pnpm install --frozen-lockfile --prod=false
+      - name: Validate the game
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          pnpm --filter @workspace/pourfect run typecheck
+          pnpm --filter @workspace/pourfect run lint
+          pnpm --filter @workspace/pourfect run test --runInBand
+      - name: Generate Android using the existing Expo config
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR/artifacts/pourfect"
+          pnpm exec expo prebuild --platform android --no-install
+          cat "$CM_BUILD_DIR/scripts/ci/android-signing.gradle" >> android/app/build.gradle
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          test -n "$SDK_ROOT" || { echo "Android SDK is not available"; exit 1; }
+          printf 'sdk.dir=%s\n' "$SDK_ROOT" > android/local.properties
+          chmod +x android/gradlew
+      - name: Build release AAB and APK
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR/artifacts/pourfect/android"
+          ./gradlew :app:bundleRelease :app:assembleRelease --no-daemon --stacktrace
+      - name: Collect and label the artifacts
+        script: |
+          set -euo pipefail
+          cd "$CM_BUILD_DIR"
+          mkdir -p build/codemagic
+          LABEL=unsigned-NOT-FOR-PLAY
+          if [ "$REQUIRE_RELEASE_SIGNING" = "true" ]; then
+            LABEL=upload-key-signed
+          fi
+          test -f artifacts/pourfect/android/app/build/outputs/bundle/release/app-release.aab
+          cp artifacts/pourfect/android/app/build/outputs/bundle/release/app-release.aab "build/codemagic/pourfect-${LABEL}.aab"
+          APK_COUNT=0
+          for apk in artifacts/pourfect/android/app/build/outputs/apk/release/*.apk; do
+            test -f "$apk" || continue
+            cp "$apk" "build/codemagic/pourfect-${LABEL}-$(basename "$apk")"
+            APK_COUNT=$((APK_COUNT + 1))
+          done
+          test "$APK_COUNT" -gt 0
+          if [ "$REQUIRE_RELEASE_SIGNING" = "true" ]; then
+            jarsigner -verify "build/codemagic/pourfect-${LABEL}.aab" > build/codemagic/signature-check.txt
+            grep -q 'jar verified' build/codemagic/signature-check.txt
+            echo "Signed with the configured upload key. Check versionCode and Play Console requirements before uploading."
+          else
+            echo "UNSIGNED: these artifacts cannot be installed or uploaded to Google Play without signing." | tee build/codemagic/UNSIGNED.txt
+          fi
+    artifacts:
+      - build/codemagic/*.aab
+      - build/codemagic/*.apk
+      - build/codemagic/*.txt
+      - artifacts/pourfect/android/app/build/outputs/mapping/release/mapping.txt
+      - artifacts/pourfect/android/build/reports/**/*
+
+  android-signed:
+    <<: *android_workflow
+    name: Pourfect Android - signed upload AAB and APK
+    environment:
+      node: 22.16.0
+      java: 17
+      android_signing:
+        - pourfect_upload
+      vars:
+        CI: "true"
+        REQUIRE_RELEASE_SIGNING: "true"
