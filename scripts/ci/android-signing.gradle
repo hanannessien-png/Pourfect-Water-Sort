@@ -1,0 +1,30 @@
+
+// Appended AFTER Expo prebuild. Never keep a copied, stale Expo build.gradle.
+// The generated template signs release with the debug key: override it explicitly.
+def requireUploadSigning = System.getenv("REQUIRE_RELEASE_SIGNING") == "true"
+android {
+    if (requireUploadSigning) {
+        def required = ["CM_KEYSTORE_PATH", "CM_KEYSTORE_PASSWORD", "CM_KEY_ALIAS", "CM_KEY_PASSWORD"]
+        required.each { name ->
+            if (!System.getenv(name)) {
+                throw new GradleException("Missing signing setting: " + name + ". Configure the pourfect_upload keystore in Codemagic.")
+            }
+        }
+        def uploadKeystore = file(System.getenv("CM_KEYSTORE_PATH"))
+        if (!uploadKeystore.isFile()) {
+            throw new GradleException("Codemagic upload keystore file is missing.")
+        }
+        signingConfigs {
+            codemagicUpload {
+                storeFile uploadKeystore
+                storePassword System.getenv("CM_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("CM_KEY_ALIAS")
+                keyPassword System.getenv("CM_KEY_PASSWORD")
+            }
+        }
+        buildTypes.release.signingConfig = signingConfigs.codemagicUpload
+    } else {
+        buildTypes.release.signingConfig = null
+        logger.lifecycle("Unsigned release build: NOT ready for Google Play or installation.")
+    }
+}

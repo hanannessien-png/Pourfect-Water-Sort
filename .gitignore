@@ -47,3 +47,11 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Generated native project / CI outputs and private Android signing material
+/artifacts/pourfect/android/
+/artifacts/pourfect/ios/
+/build/
+*.jks
+*.keystore
+**/key.properties
